@@ -1,0 +1,6 @@
+@import '@fontsource/encode-sans-semi-expanded/latin-400.css';
+@import '@fontsource/encode-sans-semi-expanded/latin-500.css';
+@import '@fontsource/encode-sans-semi-expanded/latin-600.css';
+@import '@fontsource/encode-sans-semi-expanded/latin-700.css';
+@import './tokens.css';
+@import './base.css';

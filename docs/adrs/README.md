@@ -19,6 +19,10 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0011](0011-datas-sem-horario.md) | Datas sem horário | Accepted | F2 |
 | [0012](0012-regras-de-validacao-de-projetos.md) | Regras de validação de projetos | Accepted | F2 |
 | [0013](0013-sem-login-e-com-dados-compartilhados.md) | Sem login e com dados compartilhados | Accepted | F2 |
+| [0014](0014-css-moderno-com-tokens.md) | CSS moderno com tokens | Accepted | F3 |
+| [0015](0015-organizacao-do-front-end-por-feature.md) | Organização do front-end por feature | Accepted | F3 |
+| [0016](0016-estado-com-pinia-e-cliente-com-fetch.md) | Estado com Pinia e cliente HTTP com fetch | Accepted | F3 |
+| [0017](0017-front-end-servido-por-nginx-no-compose.md) | Front-end servido por nginx no Compose | Accepted | F3 |
 
 ## Modelo
 
