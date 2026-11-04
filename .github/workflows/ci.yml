@@ -19,8 +19,38 @@ jobs:
         run: cp .env.example .env
 
       - name: Start services
-        run: docker compose up -d --wait
+        run: docker compose up -d --wait --build
+
+      - name: Show logs
+        if: failure()
+        run: docker compose logs
 
       - name: Stop services
         if: always()
         run: docker compose down -v
+
+  api:
+    name: API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          working-directory: api
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Build
+        run: go build ./...
