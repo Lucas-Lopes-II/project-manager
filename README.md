@@ -2,7 +2,7 @@
 
 Aplicação para visualizar, adicionar, editar, remover e favoritar projetos.
 
-> Em desenvolvimento. Por enquanto, o repositório contém a fundação do projeto e o esqueleto da API.
+> Em desenvolvimento. Por enquanto, o repositório contém a API de projetos, ainda sem o front-end.
 
 ## Stack
 
@@ -34,6 +34,24 @@ docker compose down     # mantém os dados
 docker compose down -v  # apaga os dados
 ```
 
+## API
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/v1/projects` | Lista os projetos |
+| `POST` | `/api/v1/projects` | Cria um projeto |
+| `GET` | `/api/v1/projects/{id}` | Consulta um projeto |
+| `PUT` | `/api/v1/projects/{id}` | Substitui os campos de um projeto |
+| `DELETE` | `/api/v1/projects/{id}` | Remove um projeto |
+
+O contrato completo está em [docs/openapi.yaml](docs/openapi.yaml).
+
+```bash
+curl -X POST http://localhost:8080/api/v1/projects \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Projeto Iridium","client":"Clicksign","start_date":"2026-11-04","end_date":"2026-12-12"}'
+```
+
 ## Testes
 
 É preciso ter o Go e o Docker instalados.
@@ -48,7 +66,7 @@ go test -short ./...   # só os testes de unidade
 
 ```text
 api/           API em Go
-docs/          ADRs e documentos das features
+docs/          ADRs, features e contrato da API
 compose.yaml   ambiente local
 ```
 

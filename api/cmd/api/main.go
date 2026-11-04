@@ -16,6 +16,7 @@ import (
 	"github.com/Lucas-Lopes-II/project-manager/api/internal/database"
 	"github.com/Lucas-Lopes-II/project-manager/api/internal/health"
 	"github.com/Lucas-Lopes-II/project-manager/api/internal/httpx"
+	"github.com/Lucas-Lopes-II/project-manager/api/internal/project"
 )
 
 func main() {
@@ -43,8 +44,13 @@ func run(log *slog.Logger) error {
 	}
 	defer db.Close()
 
+	if err := database.Migrate(ctx, db, log); err != nil {
+		return err
+	}
+
 	mux := http.NewServeMux()
 	health.Register(mux, db, log)
+	project.NewHandler(project.NewService(project.NewRepository(db)), log).Register(mux)
 
 	listener, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
