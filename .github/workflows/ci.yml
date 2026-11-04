@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    name: Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create environment file
+        run: cp .env.example .env
+
+      - name: Start services
+        run: docker compose up -d --wait
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
