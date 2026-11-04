@@ -1,0 +1,328 @@
+openapi: 3.1.0
+
+info:
+  title: Gerenciador de Projetos
+  version: 1.0.0
+  description: API para visualizar, adicionar, editar e remover projetos.
+
+servers:
+  - url: http://localhost:8080
+    description: Ambiente local
+
+security: []
+
+tags:
+  - name: Projetos
+    description: Cadastro de projetos
+  - name: Saúde
+    description: Estado da API
+
+paths:
+  /api/v1/projects:
+    get:
+      operationId: listProjects
+      summary: Lista os projetos
+      description: Retorna todos os projetos em ordem alfabética, sem diferenciar maiúsculas e acentos.
+      tags: [Projetos]
+      responses:
+        "200":
+          description: Projetos encontrados e total de projetos cadastrados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectList"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createProject
+      summary: Cria um projeto
+      tags: [Projetos]
+      requestBody:
+        $ref: "#/components/requestBodies/ProjectInput"
+      responses:
+        "201":
+          description: Projeto criado.
+          headers:
+            Location:
+              description: Caminho do projeto criado.
+              schema:
+                type: string
+                example: /api/v1/projects/61705246-aacf-4373-875a-08f4dd31428c
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/ContentTooLarge"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/projects/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID do projeto. Um ID malformado responde 404.
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getProject
+      summary: Consulta um projeto
+      tags: [Projetos]
+      responses:
+        "200":
+          description: Projeto encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      operationId: updateProject
+      summary: Substitui os campos de um projeto
+      tags: [Projetos]
+      requestBody:
+        $ref: "#/components/requestBodies/ProjectInput"
+      responses:
+        "200":
+          description: Projeto atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/ContentTooLarge"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteProject
+      summary: Remove um projeto definitivamente
+      tags: [Projetos]
+      responses:
+        "204":
+          description: Projeto removido.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Informa se o processo está no ar
+      tags: [Saúde]
+      responses:
+        "200":
+          description: Processo no ar.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+
+  /ready:
+    get:
+      operationId: getReadiness
+      summary: Informa se a API consegue usar o banco de dados
+      tags: [Saúde]
+      responses:
+        "200":
+          description: API pronta para uso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        "503":
+          description: Banco de dados indisponível.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+components:
+  requestBodies:
+    ProjectInput:
+      required: true
+      description: Campos do projeto, com limite de 1 MB.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProjectInput"
+
+  responses:
+    BadRequest:
+      description: O corpo da requisição não é um JSON válido.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Projeto não encontrado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ContentTooLarge:
+      description: O corpo da requisição excede 1 MB.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ValidationFailed:
+      description: Um ou mais campos são inválidos.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: about:blank
+            title: Unprocessable Entity
+            status: 422
+            detail: Um ou mais campos são inválidos.
+            request_id: FHGJTHJDNHP2NJACCDEGN7JBZN
+            errors:
+              - field: name
+                code: min_words
+              - field: start_date
+                code: invalid_date_range
+              - field: end_date
+                code: invalid_date_range
+    InternalError:
+      description: Erro inesperado, sem detalhes internos.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+
+  schemas:
+    ProjectInput:
+      type: object
+      required: [name, client, start_date, end_date]
+      properties:
+        name:
+          type: string
+          description: Ao menos 2 palavras e até 120 caracteres.
+          maxLength: 120
+          example: Projeto Iridium
+        client:
+          type: string
+          description: Ao menos 1 palavra e até 120 caracteres.
+          maxLength: 120
+          example: Clicksign
+        start_date:
+          type: string
+          format: date
+          example: "2026-11-04"
+        end_date:
+          type: string
+          format: date
+          description: Precisa ser posterior a `start_date`.
+          example: "2026-12-12"
+
+    Project:
+      type: object
+      required: [id, name, client, start_date, end_date, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 61705246-aacf-4373-875a-08f4dd31428c
+        name:
+          type: string
+          example: Projeto Iridium
+        client:
+          type: string
+          example: Clicksign
+        start_date:
+          type: string
+          format: date
+          example: "2026-11-04"
+        end_date:
+          type: string
+          format: date
+          example: "2026-12-12"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-11-04T18:21:55Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-11-04T18:21:55Z"
+
+    ProjectList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+        total:
+          type: integer
+          description: Quantidade de projetos cadastrados.
+          example: 1
+
+    Status:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    Problem:
+      type: object
+      description: Erro no formato da RFC 9457.
+      required: [type, title, status, request_id]
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+          example: Not Found
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: Projeto não encontrado.
+        request_id:
+          type: string
+          description: Identificador da requisição, também presente nos logs.
+          example: FHGJTHJDNHP2NJACCDEGN7JBZN
+        errors:
+          type: array
+          description: Campos inválidos, presente só nos erros de validação.
+          items:
+            $ref: "#/components/schemas/FieldError"
+
+    FieldError:
+      type: object
+      required: [field, code]
+      properties:
+        field:
+          type: string
+          enum: [name, client, start_date, end_date]
+        code:
+          type: string
+          description: |
+            - `min_words`: menos palavras que o mínimo do campo.
+            - `max_length`: mais de 120 caracteres.
+            - `invalid_date`: data ausente ou inválida.
+            - `invalid_date_range`: a data final não é posterior à inicial.
+          enum: [min_words, max_length, invalid_date, invalid_date_range]

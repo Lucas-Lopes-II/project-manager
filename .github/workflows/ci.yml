@@ -54,3 +54,12 @@ jobs:
 
       - name: Build
         run: go build ./...
+
+  openapi:
+    name: OpenAPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate contract
+        run: docker run --rm -v "$PWD:/spec" redocly/cli:2.75.0 lint docs/openapi.yaml
