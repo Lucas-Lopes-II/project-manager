@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+*.local
+*.tsbuildinfo
+.eslintcache
+
+# Cypress
+/cypress/videos/
+/cypress/screenshots/
