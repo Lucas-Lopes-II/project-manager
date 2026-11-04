@@ -9,7 +9,7 @@ Ter a aplicação Vue rodando, com os tokens do design, o layout principal, o cl
 - Projeto em `web/` com Vue 3, TypeScript, Vite, Vue Router e Pinia, em Node 24.
 - Tokens de cor, tipografia, espaçamento, raio e sombra do Figma, em custom properties.
 - Fontes servidas pela própria aplicação.
-- Logo e ícones exportados do Figma.
+- Logo, favicon e ícone de busca exportados do Figma. Os demais ícones entram com as telas que os usam.
 - Layout principal, com o cabeçalho e a área de conteúdo. O ícone de busca aparece no cabeçalho e ganha ação na F11.
 - Cliente HTTP com `fetch`, que converte as respostas de erro da API em um erro tipado.
 - Encaminhamento de `/api` para a API, pelo Vite em desenvolvimento e pelo nginx no Compose.
