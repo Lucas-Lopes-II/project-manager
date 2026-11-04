@@ -1,0 +1,51 @@
+/* Valores do Figma. Os componentes usam estes nomes, nunca os valores diretamente. */
+:root {
+  /* Cores */
+  --color-topbar: #1c1930;
+  --color-page: #f4f2ff;
+  --color-surface: #fff;
+  --color-primary: #695ccd;
+  --color-primary-disabled: #b2a8ff;
+  --color-accent: #ffb23d;
+  --color-heading: #1f1283;
+  --color-text: #1c1930;
+  --color-text-strong: #1e1e1e;
+  --color-text-muted: #717171;
+  --color-border: #717171;
+  --color-border-card: #dcdcdc;
+  --color-divider: #ececec;
+  --color-toggle-off: #53525d;
+  --color-error: #c40000;
+  --color-error-label: #9f0000;
+  --color-backdrop: rgb(24 24 24 / 90%);
+
+  /* Tipografia */
+  --font-family: 'Encode Sans Semi Expanded', system-ui, sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-md: 1rem; /* 16px */
+  --font-size-count: 1.0625rem; /* 17px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+
+  /* Espaçamento */
+  --space-page-inline: 40px;
+  --space-page-top: 60px;
+  --space-grid: 32px;
+
+  /* Raios */
+  --radius-field: 4px;
+  --radius-control: 8px;
+  --radius-card: 16px;
+  --radius-pill: 26px;
+
+  /* Sombras */
+  --shadow-raised: 0 4px 4px rgb(0 0 0 / 25%);
+
+  /* Medidas */
+  --topbar-height: 80px;
+}
