@@ -30,6 +30,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+      # Checks every second while starting, so a new container is ready in about 1 s (ADR-0031).
+      start_period: 30s
+      start_interval: 1s
 
   web:
     build: ./web
@@ -43,6 +46,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+      # Checks every second while starting, so a new container is ready in about 1 s (ADR-0031).
+      start_period: 30s
+      start_interval: 1s
 
 volumes:
   db-data:

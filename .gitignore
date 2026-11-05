@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Deploy: last Caddyfile applied on the VM
+.caddyfile.applied
+
 # OS
 .DS_Store
 Thumbs.db
