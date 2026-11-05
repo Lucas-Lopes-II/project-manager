@@ -32,6 +32,8 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0024](0024-campos-de-data-nativos.md) | Campos de data nativos, com o visual do design | Accepted | F6 |
 | [0025](0025-formulario-de-edicao-busca-na-api.md) | Formulário de edição busca o projeto na API | Accepted | F7 |
 | [0026](0026-modal-com-dialog-nativo.md) | Modal com o elemento `<dialog>` nativo | Accepted | F8 |
+| [0027](0027-favorito-como-sub-recurso.md) | Favorito como sub-recurso do projeto | Accepted | F9 |
+| [0028](0028-filtros-da-listagem-na-api.md) | Filtros da listagem na API, com o estado na URL | Accepted | F9 |
 
 ## Modelo
 
