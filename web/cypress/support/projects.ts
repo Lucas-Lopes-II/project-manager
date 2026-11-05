@@ -27,8 +27,12 @@ export function createProject(name: string): Cypress.Chainable<string> {
 }
 
 export interface ProjectList {
-  items: { name: string; cover_url: string | null }[]
+  items: { id: string; name: string; favorite: boolean; cover_url: string | null }[]
   total: number
+}
+
+export function markFavorite(id: string): void {
+  cy.request('PUT', `${PROJECTS_URL}/${id}/favorite`)
 }
 
 export function listProjects(): Cypress.Chainable<ProjectList> {
