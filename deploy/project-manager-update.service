@@ -1,0 +1,10 @@
+[Unit]
+Description=Update Project Manager to the latest published version
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+ExecStart=/home/ubuntu/project-manager/deploy/update.sh

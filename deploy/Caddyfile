@@ -1,0 +1,10 @@
+{
+	# Only TCP 443 is open on the VM, so HTTP/3 is not offered.
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$DOMAIN} {
+	reverse_proxy web:8080
+}
