@@ -61,6 +61,10 @@ npm run dev   # http://localhost:5173, com /api encaminhado para a API
 
 Se a API estiver em outra porta, defina `API_PROXY_TARGET`.
 
+## Produção
+
+A aplicação roda em uma única VM com Docker Compose, e cada merge na `main` é publicado automaticamente. Os detalhes estão em [docs/deploy.md](docs/deploy.md).
+
 ## Testes
 
 Na API, é preciso ter o Go e o Docker instalados:
@@ -83,13 +87,16 @@ npm run type-check
 ## Estrutura
 
 ```text
-api/           API em Go
-web/           aplicação em Vue
-docs/          ADRs, features e contrato da API
-compose.yaml   ambiente local
+api/                API em Go
+web/                aplicação em Vue
+docs/               ADRs, features e contrato da API
+compose.yaml        ambiente local
+compose.prod.yaml   produção
+deploy/             configuração e scripts da VM
 ```
 
 ## Documentação
 
 - [Decisões técnicas (ADRs)](docs/adrs/README.md)
 - [Features](docs/features/)
+- [Deploy](docs/deploy.md)

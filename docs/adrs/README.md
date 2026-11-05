@@ -23,6 +23,8 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0015](0015-organizacao-do-front-end-por-feature.md) | Organização do front-end por feature | Accepted | F3 |
 | [0016](0016-estado-com-pinia-e-cliente-com-fetch.md) | Estado com Pinia e cliente HTTP com fetch | Accepted | F3 |
 | [0017](0017-front-end-servido-por-nginx-no-compose.md) | Front-end servido por nginx no Compose | Accepted | F3 |
+| [0018](0018-hospedagem-em-uma-vm-com-docker-compose.md) | Hospedagem em uma VM com Docker Compose | Accepted | F4 |
+| [0019](0019-publicacao-por-imagens-com-atualizacao-pela-vm.md) | Publicação por imagens, com atualização a partir da VM | Accepted | F4 |
 
 ## Modelo
 
