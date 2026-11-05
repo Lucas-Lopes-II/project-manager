@@ -23,10 +23,13 @@ const (
 // fakeStore records the calls and answers with err when it is set.
 type fakeStore struct {
 	projects []Project
+	cover    StoredCover
+	created  Fields
 	err      error
 }
 
 func (f *fakeStore) Create(_ context.Context, fields Fields) (Project, error) {
+	f.created = fields
 	return f.result(fields)
 }
 
@@ -36,6 +39,10 @@ func (f *fakeStore) List(context.Context) ([]Project, error) {
 
 func (f *fakeStore) Get(context.Context, string) (Project, error) {
 	return Project{ID: validID}, f.err
+}
+
+func (f *fakeStore) GetCover(context.Context, string) (StoredCover, error) {
+	return f.cover, f.err
 }
 
 func (f *fakeStore) Update(_ context.Context, _ string, fields Fields) (Project, error) {

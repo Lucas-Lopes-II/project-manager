@@ -2,8 +2,12 @@
 package project
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/jpeg" // Registers the JPEG format used to recognize covers.
+	_ "image/png"  // Registers the PNG format used to recognize covers.
 	"regexp"
 	"strings"
 	"time"
@@ -15,6 +19,7 @@ const (
 	minNameWords   = 2
 	minClientWords = 1
 	maxTextLength  = 120
+	maxCoverBytes  = 5 << 20
 )
 
 // Validation error codes. They are part of the API contract.
@@ -23,10 +28,22 @@ const (
 	CodeMaxLength        = "max_length"
 	CodeInvalidDate      = "invalid_date"
 	CodeInvalidDateRange = "invalid_date_range"
+	CodeInvalidImage     = "invalid_image"
+	CodeMaxSize          = "max_size"
 )
 
-// ErrNotFound means the requested project does not exist.
-var ErrNotFound = errors.New("project not found")
+var (
+	// ErrNotFound means the requested project does not exist.
+	ErrNotFound = errors.New("project not found")
+	// ErrCoverNotFound means the requested project has no cover.
+	ErrCoverNotFound = errors.New("cover not found")
+)
+
+// coverContentTypes lists the accepted image formats.
+var coverContentTypes = map[string]string{
+	"jpeg": "image/jpeg",
+	"png":  "image/png",
+}
 
 var idPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
@@ -37,25 +54,43 @@ type Project struct {
 	Client    string    `json:"client"`
 	StartDate Date      `json:"start_date"`
 	EndDate   Date      `json:"end_date"`
+	CoverURL  *string   `json:"cover_url"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // Input holds the values sent by a client. The dates stay as text until
 // Validate, so an invalid date becomes a field error instead of a decode error.
+// Cover stays out of the JSON format, and nil means that no file was sent.
 type Input struct {
 	Name      string `json:"name"`
 	Client    string `json:"client"`
 	StartDate string `json:"start_date"`
 	EndDate   string `json:"end_date"`
+	Cover     []byte `json:"-"`
 }
 
-// Fields holds validated values, ready to be stored.
+// Fields holds validated values, ready to be stored. Cover is nil when the
+// project has no new cover.
 type Fields struct {
 	Name      string
 	Client    string
 	StartDate Date
 	EndDate   Date
+	Cover     *Cover
+}
+
+// Cover is a validated image.
+type Cover struct {
+	Content     []byte
+	ContentType string
+}
+
+// StoredCover is a cover read from the database. Version changes whenever the
+// image changes, so a URL that carries it can be cached.
+type StoredCover struct {
+	Cover
+	Version string
 }
 
 // FieldError points to an invalid field.
@@ -102,10 +137,37 @@ func (in Input) Validate() (Fields, error) {
 		)
 	}
 
+	var coverErr *FieldError
+	fields.Cover, coverErr = parseCover(in.Cover)
+	if coverErr != nil {
+		errs = append(errs, *coverErr)
+	}
+
 	if len(errs) > 0 {
 		return Fields{}, &ValidationError{Errors: errs}
 	}
 	return fields, nil
+}
+
+// parseCover identifies the format by the content of the file, because the name
+// and the type sent by the client can be anything.
+func parseCover(content []byte) (*Cover, *FieldError) {
+	if content == nil {
+		return nil, nil
+	}
+	if len(content) > maxCoverBytes {
+		return nil, &FieldError{Field: "cover", Code: CodeMaxSize}
+	}
+
+	_, format, err := image.DecodeConfig(bytes.NewReader(content))
+	if err != nil {
+		return nil, &FieldError{Field: "cover", Code: CodeInvalidImage}
+	}
+	contentType, ok := coverContentTypes[format]
+	if !ok {
+		return nil, &FieldError{Field: "cover", Code: CodeInvalidImage}
+	}
+	return &Cover{Content: content, ContentType: contentType}, nil
 }
 
 // normalizeText trims the text and collapses repeated spaces. It also removes

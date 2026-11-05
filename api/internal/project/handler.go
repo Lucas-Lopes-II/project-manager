@@ -4,11 +4,16 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/Lucas-Lopes-II/project-manager/api/internal/httpx"
 )
 
 const basePath = "/api/v1/projects"
+
+func coverPath(id string) string {
+	return basePath + "/" + id + "/cover"
+}
 
 // Handler exposes the project routes.
 type Handler struct {
@@ -26,6 +31,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+basePath, h.list)
 	mux.HandleFunc("POST "+basePath, h.create)
 	mux.HandleFunc("GET "+basePath+"/{id}", h.get)
+	mux.HandleFunc("GET "+basePath+"/{id}/cover", h.cover)
 	mux.HandleFunc("PUT "+basePath+"/{id}", h.update)
 	mux.HandleFunc("DELETE "+basePath+"/{id}", h.delete)
 }
@@ -40,8 +46,8 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
-	var input Input
-	if !httpx.DecodeJSON(w, r, &input) {
+	input, ok := decodeInput(w, r)
+	if !ok {
 		return
 	}
 
@@ -62,6 +68,28 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, r, http.StatusOK, project)
+}
+
+func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
+	cover, err := h.service.Cover(r.Context(), r.PathValue("id"))
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+
+	// The URL given by cover_url carries the current version, so it never changes.
+	cacheControl := "no-cache"
+	if r.URL.Query().Get("v") == cover.Version {
+		cacheControl = "public, max-age=31536000, immutable"
+	}
+
+	w.Header().Set("Cache-Control", cacheControl)
+	w.Header().Set("Content-Type", cover.ContentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(cover.Content)))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if _, err := w.Write(cover.Content); err != nil {
+		h.log.ErrorContext(r.Context(), "write cover", "request_id", httpx.RequestID(r.Context()), "error", err)
+	}
 }
 
 func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +127,9 @@ func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) 
 
 	case errors.Is(err, ErrNotFound):
 		httpx.WriteProblem(w, r, http.StatusNotFound, "Projeto não encontrado.")
+
+	case errors.Is(err, ErrCoverNotFound):
+		httpx.WriteProblem(w, r, http.StatusNotFound, "Capa não encontrada.")
 
 	default:
 		h.log.ErrorContext(r.Context(), "project request failed", "request_id", httpx.RequestID(r.Context()), "error", err)
