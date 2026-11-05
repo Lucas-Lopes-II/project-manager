@@ -12,6 +12,16 @@ describe('BaseButton', () => {
     expect(wrapper.text()).toBe('Salvar')
   })
 
+  it('can submit a form and be disabled', () => {
+    const wrapper = mount(BaseButton, {
+      props: { type: 'submit' },
+      attrs: { disabled: true },
+    })
+
+    expect(wrapper.attributes('type')).toBe('submit')
+    expect(wrapper.attributes('disabled')).toBeDefined()
+  })
+
   it('renders a link when it receives a route', () => {
     const wrapper = mount(BaseButton, {
       props: { to: '/projetos/novo' },
