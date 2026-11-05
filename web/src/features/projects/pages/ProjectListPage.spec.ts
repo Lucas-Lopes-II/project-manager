@@ -1,17 +1,22 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import router from '@/app/router'
 import { ApiError } from '@/shared/api/client'
 
-import { deleteProject, listProjects, type Project, type ProjectList } from '../api'
+import { deleteProject, listProjects, setFavorite, type Project, type ProjectList } from '../api'
+import { useProjectsStore } from '../store'
 import ProjectListPage from './ProjectListPage.vue'
 
-vi.mock('../api', () => ({ deleteProject: vi.fn(), listProjects: vi.fn() }))
+vi.mock('../api', () => ({ deleteProject: vi.fn(), listProjects: vi.fn(), setFavorite: vi.fn() }))
 
 const listProjectsMock = vi.mocked(listProjects)
 const deleteProjectMock = vi.mocked(deleteProject)
+const setFavoriteMock = vi.mocked(setFavorite)
+
+// The router is shared, so a page left mounted would react to the routes of the next test.
+enableAutoUnmount(afterEach)
 
 const emptyList: ProjectList = { items: [], total: 0 }
 
@@ -29,6 +34,7 @@ function sampleProject(id: string, name: string): Project {
     client: 'Clicksign',
     start_date: '2026-11-05',
     end_date: '2026-12-12',
+    favorite: false,
     cover_url: null,
     created_at: '2026-11-05T12:00:00Z',
     updated_at: '2026-11-05T12:00:00Z',
@@ -46,10 +52,12 @@ function confirmButton(wrapper: ReturnType<typeof mountPage>) {
   return wrapper.findAll('dialog button')[1]!
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   listProjectsMock.mockReset()
   deleteProjectMock.mockReset()
+  setFavoriteMock.mockReset()
   document.body.innerHTML = ''
+  await router.replace('/')
 })
 
 describe('ProjectListPage', () => {
@@ -102,6 +110,7 @@ describe('ProjectListPage', () => {
           client: 'Clicksign',
           start_date: '2026-11-05',
           end_date: '2026-12-12',
+          favorite: false,
           cover_url: null,
           created_at: '2026-11-05T12:00:00Z',
           updated_at: '2026-11-05T12:00:00Z',
@@ -200,5 +209,87 @@ describe('ProjectListPage', () => {
     expect(wrapper.get('dialog').attributes('open')).toBeUndefined()
     expect(wrapper.findAll('article')).toHaveLength(1)
     expect(document.activeElement).toBe(wrapper.get('button[aria-haspopup="menu"]').element)
+  })
+
+  describe('favorites', () => {
+    const alfa = { ...sampleProject('1', 'Projeto Alfa'), favorite: true }
+    const beta = sampleProject('2', 'Projeto Beta')
+
+    function toggle(wrapper: ReturnType<typeof mountPage>) {
+      return wrapper.get('input[role="switch"]')
+    }
+
+    it('reads the filter from the address and asks the API for the favorites', async () => {
+      listProjectsMock.mockResolvedValue({ items: [alfa], total: 2 })
+      await router.replace('/?favoritos=true')
+
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true })
+      expect((toggle(wrapper).element as HTMLInputElement).checked).toBe(true)
+      expect(wrapper.get('h1').text()).toBe('Projetos (2)')
+      expect(useProjectsStore().listQuery).toEqual({ favoritos: 'true' })
+    })
+
+    it('writes the filter in the address and keeps the list while it loads', async () => {
+      listProjectsMock.mockResolvedValueOnce({ items: [alfa, beta], total: 2 })
+      const wrapper = mountPage()
+      await flushPromises()
+
+      listProjectsMock.mockReturnValueOnce(new Promise(() => {}))
+      await toggle(wrapper).setValue(true)
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({ favoritos: 'true' })
+      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({ favoritesOnly: true })
+      expect(wrapper.findAll('article')).toHaveLength(2)
+      expect(wrapper.get('[role="status"]').text()).toBe('')
+    })
+
+    it('shows the state without favorites, with the toolbar to turn the filter off', async () => {
+      listProjectsMock.mockResolvedValue({ items: [], total: 2 })
+      await router.replace('/?favoritos=true')
+
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Nenhum projeto favorito')
+      expect(wrapper.text()).toContain('Clique na estrela de um projeto para encontrá-lo aqui.')
+      expect(wrapper.find('input[role="switch"]').exists()).toBe(true)
+      expect(wrapper.get('h1').text()).toBe('Projetos (2)')
+    })
+
+    it('marks a project and reports when the API fails', async () => {
+      listProjectsMock.mockResolvedValue({ items: [beta], total: 1 })
+      setFavoriteMock.mockRejectedValue(new ApiError(500, 'Erro interno'))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      await wrapper.get('button[aria-pressed]').trigger('click')
+      await flushPromises()
+
+      expect(setFavoriteMock).toHaveBeenCalledWith('2', true)
+      expect(wrapper.get('button[aria-pressed]').attributes('aria-pressed')).toBe('false')
+      expect(wrapper.get('[role="alert"]').text()).toBe(
+        'Não foi possível atualizar o favorito. Tente novamente.',
+      )
+    })
+
+    it('takes an unmarked project out of the favorites and moves the focus to the title', async () => {
+      listProjectsMock.mockResolvedValue({ items: [alfa], total: 2 })
+      setFavoriteMock.mockResolvedValue(undefined)
+      await router.replace('/?favoritos=true')
+      const wrapper = mountPage()
+      await flushPromises()
+
+      await wrapper.get('button[aria-pressed]').trigger('click')
+      await flushPromises()
+
+      expect(setFavoriteMock).toHaveBeenCalledWith('1', false)
+      expect(wrapper.find('article').exists()).toBe(false)
+      expect(wrapper.text()).toContain('Nenhum projeto favorito')
+      expect(document.activeElement).toBe(wrapper.get('h1').element)
+    })
   })
 })

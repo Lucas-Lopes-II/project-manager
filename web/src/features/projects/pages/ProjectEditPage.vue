@@ -8,11 +8,14 @@ import MessageCard from '@/shared/ui/MessageCard.vue'
 import { getProject, updateProject, type Project } from '../api'
 import ProjectForm from '../components/ProjectForm.vue'
 import ProjectFormLayout from '../components/ProjectFormLayout.vue'
+import { useProjectsStore } from '../store'
 import { useSaveProject } from '../useSaveProject'
 
 const props = defineProps<{ id: string }>()
 
 type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error'
+
+const projects = useProjectsStore()
 
 const project = ref<Project>()
 const status = ref<LoadStatus>('loading')
@@ -64,7 +67,9 @@ onBeforeUnmount(() => {
     title="Projeto não encontrado"
     text="Ele pode ter sido removido. Volte para a lista para ver os projetos cadastrados."
   >
-    <BaseButton :to="{ name: 'projects' }">Voltar para a lista</BaseButton>
+    <BaseButton :to="{ name: 'projects', query: projects.listQuery }">
+      Voltar para a lista
+    </BaseButton>
   </MessageCard>
 
   <MessageCard

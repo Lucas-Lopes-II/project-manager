@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { useProjectsStore } from '../store'
+
 defineProps<{ title: string }>()
+
+const projects = useProjectsStore()
 </script>
 
 <template>
-  <RouterLink class="back" :to="{ name: 'projects' }">
+  <RouterLink class="back" :to="{ name: 'projects', query: projects.listQuery }">
     <img src="@/shared/assets/icons/arrow-left.svg" alt="" width="16" height="16" />
     Voltar
   </RouterLink>

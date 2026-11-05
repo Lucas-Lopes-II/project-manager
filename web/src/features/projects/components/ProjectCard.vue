@@ -5,6 +5,8 @@ import calendarCheckIcon from '@/shared/assets/icons/calendar-check.svg'
 import calendarDayIcon from '@/shared/assets/icons/calendar-day.svg'
 import editIcon from '@/shared/assets/icons/edit.svg'
 import trashIcon from '@/shared/assets/icons/trash-menu.svg'
+import starFilledIcon from '@/shared/assets/icons/star-filled.svg'
+import starOutlineIcon from '@/shared/assets/icons/star-outline.svg'
 import placeholder from '@/shared/assets/project-placeholder.svg'
 import ActionMenu from '@/shared/ui/ActionMenu.vue'
 import ActionMenuItem from '@/shared/ui/ActionMenuItem.vue'
@@ -14,7 +16,10 @@ import { formatDate } from '../formatDate'
 
 const props = defineProps<{ project: Project }>()
 
-defineEmits<{ remove: [project: Project] }>()
+defineEmits<{
+  remove: [project: Project]
+  toggleFavorite: [project: Project]
+}>()
 
 const dates = computed(() => [
   { label: 'Início', value: props.project.start_date, icon: calendarDayIcon },
@@ -26,12 +31,33 @@ const dates = computed(() => [
   <article class="card" :data-project-id="project.id">
     <div class="media">
       <img class="cover" :src="project.cover_url ?? placeholder" alt="" loading="lazy" />
-      <ActionMenu class="actions" :label="`Ações do projeto ${project.name}`">
-        <ActionMenuItem :to="{ name: 'project-edit', params: { id: project.id } }" :icon="editIcon">
-          Editar
-        </ActionMenuItem>
-        <ActionMenuItem :icon="trashIcon" @click="$emit('remove', project)">Remover</ActionMenuItem>
-      </ActionMenu>
+      <div class="actions">
+        <button
+          class="favorite"
+          type="button"
+          :aria-label="`Favoritar ${project.name}`"
+          :aria-pressed="project.favorite"
+          @click="$emit('toggleFavorite', project)"
+        >
+          <img
+            :src="project.favorite ? starFilledIcon : starOutlineIcon"
+            alt=""
+            width="29"
+            height="29"
+          />
+        </button>
+        <ActionMenu :label="`Ações do projeto ${project.name}`">
+          <ActionMenuItem
+            :to="{ name: 'project-edit', params: { id: project.id } }"
+            :icon="editIcon"
+          >
+            Editar
+          </ActionMenuItem>
+          <ActionMenuItem :icon="trashIcon" @click="$emit('remove', project)"
+            >Remover</ActionMenuItem
+          >
+        </ActionMenu>
+      </div>
     </div>
 
     <div class="body">
@@ -70,9 +96,30 @@ const dates = computed(() => [
 }
 
 .actions {
+  display: flex;
   position: absolute;
   right: 16px;
   bottom: 16px;
+  align-items: center;
+  gap: 18px;
+}
+
+/* A 32 px target around the 20 px star of the design. The image includes the shadow. */
+.favorite {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+
+  img {
+    position: absolute;
+    top: 6px;
+    left: 1.5px;
+    max-width: none;
+  }
 }
 
 .body {

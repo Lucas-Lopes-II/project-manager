@@ -21,7 +21,10 @@ defineProps<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100dvh - var(--topbar-height) - 2 * var(--space-page-top));
+  /* The page can discount what it shows above the card, such as a toolbar. */
+  min-height: calc(
+    100dvh - var(--topbar-height) - 2 * var(--space-page-top) - var(--message-card-offset, 0px)
+  );
   margin-inline: var(--space-page-inset);
   /* One more pixel below keeps the odd content height on whole pixels at the design size. */
   padding: var(--space-grid) var(--space-grid) calc(var(--space-grid) + 1px);
