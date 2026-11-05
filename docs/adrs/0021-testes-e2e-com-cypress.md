@@ -31,6 +31,6 @@ Os fluxos principais atravessam o navegador, o nginx, a API e o banco. Os testes
 
 ## Consequências
 
-- Rodar os testes exige o Docker, e o job do CI inclui o build das imagens, o que o deixa mais lento do que os demais.
+- Rodar os testes exige o Docker e o Chrome, que substitui o Electron porque o próprio Cypress o marca como obsoleto. O job do CI inclui o build das imagens, o que o deixa mais lento do que os demais.
 - Os testes não dependem de quem os executa nem do ambiente de desenvolvimento estar no ar.
 - O Cypress baixa um binário grande na instalação, então o build da imagem e os jobs que não executam os testes precisam pular esse download.
