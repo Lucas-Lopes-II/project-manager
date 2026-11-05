@@ -45,6 +45,10 @@ export function updateProject(id: string, input: ProjectInput): Promise<Project>
   })
 }
 
+export function deleteProject(id: string): Promise<void> {
+  return request<void>(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 function toFormData({ cover, removeCover, ...fields }: ProjectInput): FormData {
   const form = new FormData()
   for (const [name, value] of Object.entries(fields)) {

@@ -3,12 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/api/client'
 
-import { listProjects, type Project, type ProjectList } from './api'
+import { deleteProject, listProjects, type Project, type ProjectList } from './api'
 import { useProjectsStore } from './store'
 
-vi.mock('./api', () => ({ listProjects: vi.fn() }))
+vi.mock('./api', () => ({ deleteProject: vi.fn(), listProjects: vi.fn() }))
 
 const listProjectsMock = vi.mocked(listProjects)
+const deleteProjectMock = vi.mocked(deleteProject)
 
 const project: Project = {
   id: '61705246-aacf-4373-875a-08f4dd31428c',
@@ -149,5 +150,61 @@ describe('useProjectsStore', () => {
 
     expect(store.status).toBe('ready')
     expect(store.total).toBe(1)
+  })
+})
+
+describe('remove', () => {
+  const other: Project = { ...project, id: 'outro', name: 'Projeto Alfa' }
+
+  async function loadedStore() {
+    listProjectsMock.mockResolvedValue({ items: [project, other], total: 2 })
+    const store = useProjectsStore()
+    await store.load()
+    return store
+  }
+
+  beforeEach(() => {
+    deleteProjectMock.mockReset()
+  })
+
+  it('removes the project from the list after the API confirms it', async () => {
+    deleteProjectMock.mockResolvedValue(undefined)
+    const store = await loadedStore()
+
+    await store.remove(project.id)
+
+    expect(deleteProjectMock).toHaveBeenCalledWith(project.id)
+    expect(store.items).toEqual([other])
+    expect(store.total).toBe(1)
+    expect(listProjectsMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the list and reports the failure', async () => {
+    deleteProjectMock.mockRejectedValue(new ApiError(500, 'Erro interno'))
+    const store = await loadedStore()
+
+    await expect(store.remove(project.id)).rejects.toThrow('Erro interno')
+
+    expect(store.items).toEqual([project, other])
+    expect(store.total).toBe(2)
+  })
+
+  it('removes a project that someone else removed first', async () => {
+    deleteProjectMock.mockRejectedValue(new ApiError(404, 'Projeto não encontrado.'))
+    const store = await loadedStore()
+
+    await store.remove(project.id)
+
+    expect(store.items).toEqual([other])
+    expect(store.total).toBe(1)
+  })
+
+  it('does not change the total for a project that is not in the list', async () => {
+    deleteProjectMock.mockResolvedValue(undefined)
+    const store = await loadedStore()
+
+    await store.remove('desconhecido')
+
+    expect(store.total).toBe(2)
   })
 })

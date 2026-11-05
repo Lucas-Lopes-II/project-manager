@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { request } from '@/shared/api/client'
 
-import { createProject, getProject, updateProject, type ProjectInput } from './api'
+import { createProject, deleteProject, getProject, updateProject, type ProjectInput } from './api'
 
 vi.mock('@/shared/api/client', () => ({ request: vi.fn() }))
 
@@ -93,5 +93,13 @@ describe('updateProject', () => {
 
     expect(sentForm().has('cover')).toBe(true)
     expect(sentForm().has('remove_cover')).toBe(false)
+  })
+})
+
+describe('deleteProject', () => {
+  it('asks the API to remove the project', async () => {
+    await deleteProject('a/b')
+
+    expect(requestMock).toHaveBeenCalledWith('/projects/a%2Fb', { method: 'DELETE' })
   })
 })

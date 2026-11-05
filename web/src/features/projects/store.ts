@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import { listProjects, type Project } from './api'
+import { ApiError } from '@/shared/api/client'
+
+import { deleteProject, listProjects, type Project } from './api'
 
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -41,5 +43,23 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  return { items, total, status, load, cancel }
+  /** Removes a project after the API confirms it, without searching the list again. */
+  async function remove(id: string): Promise<void> {
+    try {
+      await deleteProject(id)
+    } catch (error) {
+      // Someone else removed it already, which is the result that was asked for.
+      if (!(error instanceof ApiError && error.status === 404)) {
+        throw error
+      }
+    }
+
+    const remaining = items.value.filter((project) => project.id !== id)
+    if (remaining.length < items.value.length) {
+      items.value = remaining
+      total.value -= 1
+    }
+  }
+
+  return { items, total, status, load, cancel, remove }
 })
