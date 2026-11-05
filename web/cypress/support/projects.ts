@@ -23,3 +23,12 @@ export function createProject(name: string): void {
     end_date: '2026-12-12',
   })
 }
+
+export interface ProjectList {
+  items: { name: string; cover_url: string | null }[]
+  total: number
+}
+
+export function listProjects(): Cypress.Chainable<ProjectList> {
+  return cy.request<ProjectList>(PROJECTS_URL).its('body')
+}
