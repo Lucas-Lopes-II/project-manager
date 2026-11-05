@@ -63,6 +63,32 @@ describe('ProjectListPage', () => {
     expect(wrapper.text()).not.toContain('Nenhum projeto')
   })
 
+  it('shows a card for each project and a link to create another', async () => {
+    listProjectsMock.mockResolvedValue({
+      items: [
+        {
+          id: '1',
+          name: 'Projeto Alfa',
+          client: 'Clicksign',
+          start_date: '2026-11-05',
+          end_date: '2026-12-12',
+          cover_url: null,
+          created_at: '2026-11-05T12:00:00Z',
+          updated_at: '2026-11-05T12:00:00Z',
+        },
+      ],
+      total: 1,
+    })
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.findAll('article')).toHaveLength(1)
+    expect(wrapper.get('article h2').text()).toBe('Projeto Alfa')
+    expect(wrapper.get('a').text()).toBe('Novo projeto')
+    expect(wrapper.get('a').attributes('href')).toBe('/projetos/novo')
+  })
+
   it('reports the failure and recovers when trying again', async () => {
     listProjectsMock.mockRejectedValueOnce(new ApiError(500, 'Erro interno'))
     listProjectsMock.mockResolvedValueOnce({ items: [], total: 2 })
