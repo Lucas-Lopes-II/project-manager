@@ -1,27 +1,42 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { LocationQuery } from 'vue-router'
 
 import { ApiError } from '@/shared/api/client'
 
-import { deleteProject, listProjects, type Project } from './api'
+import { deleteProject, listProjects, setFavorite, type Project } from './api'
 
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error'
+
+export interface LoadOptions {
+  favoritesOnly?: boolean
+  /** Keeps the current list on screen until the answer arrives, so it does not flicker. */
+  keepItems?: boolean
+}
 
 export const useProjectsStore = defineStore('projects', () => {
   const items = ref<Project[]>([])
   const total = ref(0)
   const status = ref<LoadStatus>('idle')
+  const favoritesOnly = ref(false)
+
+  /** The query of the list, so that the forms return to the same filters. */
+  const listQuery = ref<LocationQuery>({})
 
   let controller: AbortController | undefined
+  const pendingFavorites = new Set<string>()
 
-  async function load(): Promise<void> {
+  async function load(options: LoadOptions = {}): Promise<void> {
     controller?.abort()
     const current = new AbortController()
     controller = current
-    status.value = 'loading'
+    favoritesOnly.value = options.favoritesOnly ?? false
+    if (!(options.keepItems && status.value === 'ready')) {
+      status.value = 'loading'
+    }
 
     try {
-      const list = await listProjects(current.signal)
+      const list = await listProjects(current.signal, { favoritesOnly: favoritesOnly.value })
       if (current !== controller) return
 
       items.value = list.items
@@ -53,13 +68,70 @@ export const useProjectsStore = defineStore('projects', () => {
         throw error
       }
     }
+    forget(id)
+  }
 
-    const remaining = items.value.filter((project) => project.id !== id)
-    if (remaining.length < items.value.length) {
-      items.value = remaining
-      total.value -= 1
+  /**
+   * Changes the star right away and undoes only this change if the API fails. With the
+   * favorites filter on, a project that stops being a favorite leaves the list.
+   */
+  async function toggleFavorite(id: string): Promise<void> {
+    const index = items.value.findIndex((project) => project.id === id)
+    const project = items.value[index]
+    if (!project || pendingFavorites.has(id)) {
+      return
+    }
+
+    const favorite = !project.favorite
+    pendingFavorites.add(id)
+    if (favoritesOnly.value && !favorite) {
+      items.value = items.value.filter((item) => item.id !== id)
+    } else {
+      replace(id, { favorite })
+    }
+
+    try {
+      await setFavorite(id, favorite)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        forget(id)
+        return
+      }
+      if (items.value.some((item) => item.id === id)) {
+        replace(id, { favorite: project.favorite })
+      } else {
+        const restored = [...items.value]
+        restored.splice(Math.min(index, restored.length), 0, project)
+        items.value = restored
+      }
+      throw error
+    } finally {
+      pendingFavorites.delete(id)
     }
   }
 
-  return { items, total, status, load, cancel, remove }
+  function replace(id: string, changes: Partial<Project>): void {
+    items.value = items.value.map((item) => (item.id === id ? { ...item, ...changes } : item))
+  }
+
+  /** The project no longer exists, so it leaves the list and the total. */
+  function forget(id: string): void {
+    const remaining = items.value.filter((project) => project.id !== id)
+    if (remaining.length < items.value.length || favoritesOnly.value) {
+      total.value = Math.max(0, total.value - 1)
+    }
+    items.value = remaining
+  }
+
+  return {
+    items,
+    total,
+    status,
+    favoritesOnly,
+    listQuery,
+    load,
+    cancel,
+    remove,
+    toggleFavorite,
+  }
 })

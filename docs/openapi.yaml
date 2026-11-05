@@ -22,8 +22,15 @@ paths:
     get:
       operationId: listProjects
       summary: Lista os projetos
-      description: Retorna todos os projetos em ordem alfabética, sem diferenciar maiúsculas e acentos.
+      description: Retorna os projetos em ordem alfabética, sem diferenciar maiúsculas e acentos. O `total` sempre conta todos os projetos cadastrados, mesmo com filtro.
       tags: [Projetos]
+      parameters:
+        - name: favorite
+          in: query
+          description: Com `true`, retorna apenas os favoritos.
+          schema:
+            type: string
+            enum: ["true"]
       responses:
         "200":
           description: Projetos encontrados e total de projetos cadastrados.
@@ -31,6 +38,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectList"
+        "400":
+          $ref: "#/components/responses/InvalidFilter"
         "500":
           $ref: "#/components/responses/InternalError"
     post:
@@ -158,6 +167,39 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/v1/projects/{id}/favorite:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: favoriteProject
+      summary: Marca um projeto como favorito
+      description: Repetir a chamada dá o mesmo resultado. Não altera o `updated_at`.
+      tags: [Projetos]
+      responses:
+        "204":
+          description: O projeto é favorito.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: unfavoriteProject
+      summary: Desmarca um projeto como favorito
+      description: Repetir a chamada dá o mesmo resultado. Não altera o `updated_at`.
+      tags: [Projetos]
+      responses:
+        "204":
+          description: O projeto não é favorito.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /health:
     get:
       operationId: getHealth
@@ -239,6 +281,12 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    InvalidFilter:
+      description: O valor de um filtro da listagem é inválido.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
     NotFound:
       description: Projeto não encontrado.
       content:
@@ -310,7 +358,7 @@ components:
 
     Project:
       type: object
-      required: [id, name, client, start_date, end_date, cover_url, created_at, updated_at]
+      required: [id, name, client, start_date, end_date, favorite, cover_url, created_at, updated_at]
       properties:
         id:
           type: string
@@ -330,6 +378,9 @@ components:
           type: string
           format: date
           example: "2026-12-12"
+        favorite:
+          type: boolean
+          example: false
         cover_url:
           type: [string, "null"]
           description: Endereço da capa, ou `null` quando o projeto não tem capa.

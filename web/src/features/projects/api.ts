@@ -6,6 +6,7 @@ export interface Project {
   client: string
   start_date: string
   end_date: string
+  favorite: boolean
   cover_url: string | null
   created_at: string
   updated_at: string
@@ -26,8 +27,21 @@ export interface ProjectInput {
   removeCover?: boolean
 }
 
-export function listProjects(signal?: AbortSignal): Promise<ProjectList> {
-  return request<ProjectList>('/projects', { signal })
+export interface ListFilter {
+  favoritesOnly?: boolean
+}
+
+/** The total of the answer always counts every registered project, whatever the filter. */
+export function listProjects(signal?: AbortSignal, filter: ListFilter = {}): Promise<ProjectList> {
+  const query = filter.favoritesOnly ? '?favorite=true' : ''
+  return request<ProjectList>(`/projects${query}`, { signal })
+}
+
+/** Marks or unmarks a project. Repeating it gives the same result. */
+export function setFavorite(id: string, favorite: boolean): Promise<void> {
+  return request<void>(`/projects/${encodeURIComponent(id)}/favorite`, {
+    method: favorite ? 'PUT' : 'DELETE',
+  })
 }
 
 export function createProject(input: ProjectInput): Promise<Project> {

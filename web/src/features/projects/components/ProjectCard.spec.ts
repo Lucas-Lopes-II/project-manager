@@ -2,6 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import router from '@/app/router'
+import starFilledIcon from '@/shared/assets/icons/star-filled.svg'
+import starOutlineIcon from '@/shared/assets/icons/star-outline.svg'
 import placeholder from '@/shared/assets/project-placeholder.svg'
 
 import type { Project } from '../api'
@@ -13,6 +15,7 @@ const project: Project = {
   client: 'Clicksign',
   start_date: '2024-09-01',
   end_date: '2024-12-12',
+  favorite: false,
   cover_url: null,
   created_at: '2024-09-01T12:00:00Z',
   updated_at: '2024-09-01T12:00:00Z',
@@ -85,5 +88,24 @@ describe('ProjectCard', () => {
     await wrapper.findAll('[role="menuitem"]')[1]!.trigger('click')
 
     expect(wrapper.emitted('remove')).toEqual([[project]])
+  })
+
+  it('shows the star of the design and its state', () => {
+    const normal = mountCard().get('button[aria-pressed]')
+    const favorite = mountCard({ ...project, favorite: true }).get('button[aria-pressed]')
+
+    expect(normal.attributes('aria-label')).toBe('Favoritar Projeto Iridium')
+    expect(normal.attributes('aria-pressed')).toBe('false')
+    expect(normal.get('img').attributes('src')).toBe(starOutlineIcon)
+    expect(favorite.attributes('aria-pressed')).toBe('true')
+    expect(favorite.get('img').attributes('src')).toBe(starFilledIcon)
+  })
+
+  it('asks the page to change the favorite', async () => {
+    const wrapper = mountCard()
+
+    await wrapper.get('button[aria-pressed]').trigger('click')
+
+    expect(wrapper.emitted('toggleFavorite')).toEqual([[project]])
   })
 })

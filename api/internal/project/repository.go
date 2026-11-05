@@ -14,7 +14,7 @@ import (
 // The covers table only provides the update time here, so listing projects does
 // not read the images.
 const (
-	columns       = `p.id, p.name, p.client, p.start_date, p.end_date, p.created_at, p.updated_at, c.updated_at`
+	columns       = `p.id, p.name, p.client, p.start_date, p.end_date, p.favorite, p.created_at, p.updated_at, c.updated_at`
 	joinCovers    = `LEFT JOIN project_covers c ON c.project_id = p.id`
 	selectProject = `SELECT ` + columns + ` FROM projects p ` + joinCovers + ` WHERE p.id = $1`
 )
@@ -60,12 +60,15 @@ func (r *Repository) Create(ctx context.Context, fields Fields) (Project, error)
 	return project, nil
 }
 
-// List returns every project in alphabetical order, ignoring case and accents.
-func (r *Repository) List(ctx context.Context) ([]Project, error) {
+// List returns the projects that match the filter in alphabetical order,
+// ignoring case and accents.
+func (r *Repository) List(ctx context.Context, filter ListFilter) ([]Project, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT `+columns+`
 		 FROM projects p `+joinCovers+`
+		 WHERE NOT $1 OR p.favorite
 		 ORDER BY p.name COLLATE "pt-BR-x-icu", p.id`,
+		filter.FavoritesOnly,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
@@ -78,6 +81,15 @@ func (r *Repository) List(ctx context.Context) ([]Project, error) {
 		return nil, fmt.Errorf("list projects: %w", err)
 	}
 	return projects, nil
+}
+
+// Count returns the number of registered projects.
+func (r *Repository) Count(ctx context.Context) (int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `SELECT count(*) FROM projects`).Scan(&total); err != nil {
+		return 0, fmt.Errorf("count projects: %w", err)
+	}
+	return total, nil
 }
 
 // Get returns the project with the given ID or ErrNotFound.
@@ -156,6 +168,19 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// SetFavorite marks or unmarks a project, or returns ErrNotFound. Favoriting
+// does not change the data of the project, so updated_at stays the same.
+func (r *Repository) SetFavorite(ctx context.Context, id string, favorite bool) error {
+	result, err := r.db.Exec(ctx, `UPDATE projects SET favorite = $2 WHERE id = $1`, id, favorite)
+	if err != nil {
+		return fmt.Errorf("set favorite: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // saveCover stores the cover of a project, replacing the current one.
 func saveCover(ctx context.Context, tx pgx.Tx, id string, cover Cover) error {
 	_, err := tx.Exec(ctx,
@@ -182,6 +207,7 @@ func scanProject(row pgx.Row) (Project, error) {
 		&project.Client,
 		&startDate,
 		&endDate,
+		&project.Favorite,
 		&project.CreatedAt,
 		&project.UpdatedAt,
 		&coverUpdatedAt,

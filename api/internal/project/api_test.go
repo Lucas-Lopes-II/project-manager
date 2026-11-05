@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/Lucas-Lopes-II/project-manager/api/internal/httpx"
 )
 
@@ -39,6 +41,18 @@ func call(t *testing.T, server *httptest.Server, method, path, body string) (int
 		}
 	}
 	return res.StatusCode, res.Header, decoded
+}
+
+// newTestServer serves the project routes with the middlewares used in production.
+func newTestServer(t *testing.T, pool *pgxpool.Pool) *httptest.Server {
+	t.Helper()
+
+	logger := slog.New(slog.DiscardHandler)
+	mux := http.NewServeMux()
+	NewHandler(NewService(NewRepository(pool)), logger).Register(mux)
+	server := httptest.NewServer(httpx.NewHandler(mux, logger))
+	t.Cleanup(server.Close)
+	return server
 }
 
 func TestAPI_ProjectLifecycle(t *testing.T) {

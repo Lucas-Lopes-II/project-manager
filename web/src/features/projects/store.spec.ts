@@ -3,13 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/api/client'
 
-import { deleteProject, listProjects, type Project, type ProjectList } from './api'
+import { deleteProject, listProjects, setFavorite, type Project, type ProjectList } from './api'
 import { useProjectsStore } from './store'
 
-vi.mock('./api', () => ({ deleteProject: vi.fn(), listProjects: vi.fn() }))
+vi.mock('./api', () => ({ deleteProject: vi.fn(), listProjects: vi.fn(), setFavorite: vi.fn() }))
 
 const listProjectsMock = vi.mocked(listProjects)
 const deleteProjectMock = vi.mocked(deleteProject)
+const setFavoriteMock = vi.mocked(setFavorite)
 
 const project: Project = {
   id: '61705246-aacf-4373-875a-08f4dd31428c',
@@ -17,6 +18,7 @@ const project: Project = {
   client: 'Clicksign',
   start_date: '2026-11-04',
   end_date: '2026-12-12',
+  favorite: false,
   cover_url: null,
   created_at: '2026-11-04T18:21:55Z',
   updated_at: '2026-11-04T18:21:55Z',
@@ -206,5 +208,124 @@ describe('remove', () => {
     await store.remove('desconhecido')
 
     expect(store.total).toBe(2)
+  })
+})
+
+describe('filters', () => {
+  it('asks the API for the favorites only', async () => {
+    listProjectsMock.mockResolvedValue({ items: [], total: 3 })
+    const store = useProjectsStore()
+
+    await store.load({ favoritesOnly: true })
+
+    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true })
+    expect(store.favoritesOnly).toBe(true)
+    expect(store.total).toBe(3)
+  })
+
+  it('keeps the current list on screen while a new filter loads', async () => {
+    listProjectsMock.mockResolvedValueOnce({ items: [project], total: 1 })
+    const store = useProjectsStore()
+    await store.load()
+
+    const answer = deferredList()
+    listProjectsMock.mockReturnValueOnce(answer.promise)
+    const loading = store.load({ favoritesOnly: true, keepItems: true })
+
+    expect(store.status).toBe('ready')
+    expect(store.items).toEqual([project])
+
+    answer.resolve({ items: [], total: 1 })
+    await loading
+    expect(store.items).toEqual([])
+  })
+
+  it('shows the loading state when there is no list to keep', async () => {
+    listProjectsMock.mockReturnValue(new Promise(() => {}))
+    const store = useProjectsStore()
+
+    void store.load({ keepItems: true })
+
+    expect(store.status).toBe('loading')
+  })
+})
+
+describe('toggleFavorite', () => {
+  const other: Project = { ...project, id: 'outro', name: 'Projeto Alfa', favorite: true }
+
+  async function loadedStore(favoritesOnly = false) {
+    listProjectsMock.mockResolvedValue({ items: [project, other], total: 5 })
+    const store = useProjectsStore()
+    await store.load({ favoritesOnly })
+    return store
+  }
+
+  function favoriteOf(store: ReturnType<typeof useProjectsStore>, id: string) {
+    return store.items.find((item) => item.id === id)?.favorite
+  }
+
+  beforeEach(() => {
+    setFavoriteMock.mockReset()
+  })
+
+  it('changes the star right away and asks the API', async () => {
+    let answer!: () => void
+    setFavoriteMock.mockReturnValue(new Promise((resolve) => (answer = () => resolve())))
+    const store = await loadedStore()
+
+    const toggling = store.toggleFavorite(project.id)
+
+    expect(favoriteOf(store, project.id)).toBe(true)
+    expect(setFavoriteMock).toHaveBeenCalledWith(project.id, true)
+
+    answer()
+    await toggling
+    expect(favoriteOf(store, project.id)).toBe(true)
+  })
+
+  it('undoes the change and reports the failure', async () => {
+    setFavoriteMock.mockRejectedValue(new ApiError(500, 'Erro interno'))
+    const store = await loadedStore()
+
+    await expect(store.toggleFavorite(other.id)).rejects.toThrow('Erro interno')
+
+    expect(favoriteOf(store, other.id)).toBe(true)
+  })
+
+  it('takes an unmarked project out of the favorites, and back if the API fails', async () => {
+    let fail!: (error: unknown) => void
+    setFavoriteMock.mockReturnValue(new Promise((_, reject) => (fail = reject)))
+    const store = await loadedStore(true)
+
+    const toggling = store.toggleFavorite(other.id)
+    expect(store.items.map((item) => item.id)).toEqual([project.id])
+    expect(store.total).toBe(5)
+
+    fail(new ApiError(500, 'Erro interno'))
+    await expect(toggling).rejects.toThrow()
+
+    expect(store.items.map((item) => item.id)).toEqual([project.id, other.id])
+    expect(favoriteOf(store, other.id)).toBe(true)
+  })
+
+  it('ignores clicks while the previous one is pending', async () => {
+    setFavoriteMock.mockReturnValue(new Promise(() => {}))
+    const store = await loadedStore()
+
+    void store.toggleFavorite(project.id)
+    void store.toggleFavorite(project.id)
+
+    expect(setFavoriteMock).toHaveBeenCalledTimes(1)
+    expect(favoriteOf(store, project.id)).toBe(true)
+  })
+
+  it('removes a project that someone else removed first', async () => {
+    setFavoriteMock.mockRejectedValue(new ApiError(404, 'Projeto não encontrado.'))
+    const store = await loadedStore()
+
+    await store.toggleFavorite(project.id)
+
+    expect(store.items.map((item) => item.id)).toEqual([other.id])
+    expect(store.total).toBe(4)
   })
 })

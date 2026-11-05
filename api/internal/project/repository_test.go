@@ -123,7 +123,7 @@ func TestRepository_ListSortsIgnoringCaseAndAccents(t *testing.T) {
 		}
 	}
 
-	projects, err := repo.List(t.Context())
+	projects, err := repo.List(t.Context(), ListFilter{})
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
 	}
@@ -141,7 +141,7 @@ func TestRepository_ListSortsIgnoringCaseAndAccents(t *testing.T) {
 func TestRepository_ListWithNoProjectsReturnsAnEmptyList(t *testing.T) {
 	repo := NewRepository(emptyDatabase(t))
 
-	projects, err := repo.List(t.Context())
+	projects, err := repo.List(t.Context(), ListFilter{})
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
 	}
@@ -237,7 +237,7 @@ func TestRepository_StoresTheCoverWithTheProject(t *testing.T) {
 		t.Errorf("CoverURL = %v, want %q", created.CoverURL, want)
 	}
 
-	projects, err := repo.List(t.Context())
+	projects, err := repo.List(t.Context(), ListFilter{})
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
 	}
@@ -272,7 +272,7 @@ func TestRepository_DoesNotKeepTheProjectWhenTheCoverFails(t *testing.T) {
 		t.Fatal("Create() error = nil, want the constraint violation")
 	}
 
-	projects, err := repo.List(t.Context())
+	projects, err := repo.List(t.Context(), ListFilter{})
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
 	}

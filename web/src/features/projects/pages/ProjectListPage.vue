@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import BaseButton from '@/shared/ui/BaseButton.vue'
+import BaseToggle from '@/shared/ui/BaseToggle.vue'
 import MessageCard from '@/shared/ui/MessageCard.vue'
 
 import type { Project } from '../api'
@@ -9,10 +11,54 @@ import ProjectCard from '../components/ProjectCard.vue'
 import RemoveProjectDialog from '../components/RemoveProjectDialog.vue'
 import { useProjectsStore } from '../store'
 
+const FAVORITE_FAILURE = 'Não foi possível atualizar o favorito. Tente novamente.'
+
 const projects = useProjectsStore()
+const route = useRoute()
+const router = useRouter()
 
 const page = useTemplateRef('page')
 const toRemove = ref<Project | null>(null)
+const favoriteFailure = ref<string>()
+
+/** The filter lives in the address, so it survives a reload. Changing it replaces the entry. */
+const favoritesOnly = computed({
+  get: () => route.query.favoritos === 'true',
+  set: (value: boolean) => {
+    void router.replace({ query: { ...route.query, favoritos: value ? 'true' : undefined } })
+  },
+})
+
+function load(keepItems = false): Promise<void> {
+  projects.listQuery = { ...route.query }
+  return projects.load({ favoritesOnly: favoritesOnly.value, keepItems })
+}
+
+watch(favoritesOnly, () => {
+  favoriteFailure.value = undefined
+  void load(true)
+})
+
+function focusTitle(): void {
+  page.value?.querySelector<HTMLElement>('h1')?.focus()
+}
+
+async function onToggleFavorite(project: Project): Promise<void> {
+  favoriteFailure.value = undefined
+  // With the filter on, unmarking takes the card and its star out of the list.
+  const leavesTheList = favoritesOnly.value && project.favorite
+  const toggling = projects.toggleFavorite(project.id)
+  if (leavesTheList) {
+    await nextTick()
+    focusTitle()
+  }
+
+  try {
+    await toggling
+  } catch {
+    favoriteFailure.value = FAVORITE_FAILURE
+  }
+}
 
 // The page moves the focus itself: with a real click, the dialog opens before the menu returns
 // the focus to its button, so the browser would return it to an option that no longer exists.
@@ -34,7 +80,7 @@ function onRemoved(): Promise<void> {
   return closeDialog(() => 'h1')
 }
 
-onMounted(() => projects.load())
+onMounted(() => load())
 onBeforeUnmount(() => projects.cancel())
 </script>
 
@@ -50,7 +96,7 @@ onBeforeUnmount(() => projects.cancel())
       role="alert"
       title="Não foi possível carregar os projetos."
     >
-      <BaseButton @click="projects.load()">Tentar novamente</BaseButton>
+      <BaseButton @click="load()">Tentar novamente</BaseButton>
     </MessageCard>
 
     <template v-else-if="projects.status === 'ready'">
@@ -59,15 +105,31 @@ onBeforeUnmount(() => projects.cancel())
           <h1 class="title" tabindex="-1">
             Projetos <span class="count">({{ projects.total }})</span>
           </h1>
-          <BaseButton class="new-project" size="small" :to="{ name: 'project-new' }">
-            <img src="@/shared/assets/icons/plus-circle.svg" alt="" width="24" height="24" />
-            Novo projeto
-          </BaseButton>
+          <div class="controls">
+            <BaseToggle v-model="favoritesOnly">Apenas Favoritos</BaseToggle>
+            <BaseButton class="new-project" size="small" :to="{ name: 'project-new' }">
+              <img src="@/shared/assets/icons/plus-circle.svg" alt="" width="24" height="24" />
+              Novo projeto
+            </BaseButton>
+          </div>
         </div>
 
-        <ul class="grid">
+        <p v-if="favoriteFailure" class="favorite-failure" role="alert">{{ favoriteFailure }}</p>
+
+        <MessageCard
+          v-if="favoritesOnly && projects.items.length === 0"
+          class="no-favorites"
+          title="Nenhum projeto favorito"
+          text="Clique na estrela de um projeto para encontrá-lo aqui."
+        />
+
+        <ul v-else class="grid">
           <li v-for="project in projects.items" :key="project.id" class="item">
-            <ProjectCard :project="project" @remove="toRemove = $event" />
+            <ProjectCard
+              :project="project"
+              @remove="toRemove = $event"
+              @toggle-favorite="onToggleFavorite"
+            />
           </li>
         </ul>
       </template>
@@ -106,6 +168,26 @@ onBeforeUnmount(() => projects.cancel())
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   line-height: 29px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+}
+
+.favorite-failure {
+  margin: 16px var(--space-page-inset) 0;
+  color: var(--color-error);
+  line-height: 22px;
+}
+
+/* The toolbar and its space take 62 px above the card. */
+.no-favorites {
+  --message-card-offset: 62px;
+
+  margin-top: 22px;
 }
 
 .new-project {

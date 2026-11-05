@@ -34,10 +34,22 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+basePath+"/{id}/cover", h.cover)
 	mux.HandleFunc("PUT "+basePath+"/{id}", h.update)
 	mux.HandleFunc("DELETE "+basePath+"/{id}", h.delete)
+	mux.HandleFunc("PUT "+basePath+"/{id}/favorite", h.setFavorite(true))
+	mux.HandleFunc("DELETE "+basePath+"/{id}/favorite", h.setFavorite(false))
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
-	list, err := h.service.List(r.Context())
+	var filter ListFilter
+	switch r.URL.Query().Get("favorite") {
+	case "":
+	case "true":
+		filter.FavoritesOnly = true
+	default:
+		httpx.WriteProblem(w, r, http.StatusBadRequest, "O filtro favorite aceita apenas o valor true.")
+		return
+	}
+
+	list, err := h.service.List(r.Context(), filter)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -112,6 +124,18 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// setFavorite answers PUT, which marks the project, and DELETE, which unmarks it.
+// Both can be repeated with the same result.
+func (h *Handler) setFavorite(favorite bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := h.service.SetFavorite(r.Context(), r.PathValue("id"), favorite); err != nil {
+			h.writeError(w, r, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) {
