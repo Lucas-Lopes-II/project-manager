@@ -43,6 +43,11 @@ button {
   outline-offset: 2px;
 }
 
+/* Titles receive the focus only to guide screen readers after a change, and are not controls. */
+[tabindex='-1']:focus {
+  outline: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
