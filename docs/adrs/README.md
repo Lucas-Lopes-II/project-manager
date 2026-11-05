@@ -25,6 +25,8 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0017](0017-front-end-servido-por-nginx-no-compose.md) | Front-end servido por nginx no Compose | Accepted | F3 |
 | [0018](0018-hospedagem-em-uma-vm-com-docker-compose.md) | Hospedagem em uma VM com Docker Compose | Accepted | F4 |
 | [0019](0019-publicacao-por-imagens-com-atualizacao-pela-vm.md) | Publicação por imagens, com atualização a partir da VM | Accepted | F4 |
+| [0020](0020-estados-sem-design.md) | Estados sem design | Accepted | F5 |
+| [0021](0021-testes-e2e-com-cypress.md) | Testes E2E com Cypress contra a aplicação real | Accepted | F5 |
 
 ## Modelo
 

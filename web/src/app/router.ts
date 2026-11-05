@@ -9,6 +9,11 @@ const router = createRouter({
       component: () => import('@/features/projects/pages/ProjectListPage.vue'),
     },
     {
+      path: '/projetos/novo',
+      name: 'project-new',
+      component: () => import('@/features/projects/pages/ProjectCreatePage.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: { name: 'projects' },
     },

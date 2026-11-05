@@ -4,7 +4,7 @@ Aplicação para visualizar, adicionar, editar, remover e favoritar projetos.
 
 **Acesse:** https://gerenciador-projetos-lucas.duckdns.org
 
-> Em desenvolvimento. Por enquanto, o repositório contém a API de projetos e a base do front-end.
+> Em desenvolvimento. Por enquanto, o repositório contém a API de projetos e a listagem inicial.
 
 ## Stack
 
@@ -85,6 +85,15 @@ npm test
 npm run lint
 npm run type-check
 ```
+
+Os testes E2E, com Cypress, precisam do Docker e do Chrome. O comando sobe uma cópia separada da aplicação, roda os testes e a remove, sem tocar nos dados do ambiente local:
+
+```bash
+cd web
+npm run test:e2e
+```
+
+Para acompanhar os testes na interface do Cypress, rode `npm run e2e:up`, depois `npm run test:e2e:open` e, ao terminar, `npm run e2e:down`.
 
 ## Estrutura
 
