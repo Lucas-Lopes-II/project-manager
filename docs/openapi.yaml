@@ -22,7 +22,7 @@ paths:
     get:
       operationId: listProjects
       summary: Lista os projetos
-      description: Retorna os projetos em ordem alfabética, sem diferenciar maiúsculas e acentos. O `total` sempre conta todos os projetos cadastrados, mesmo com filtro.
+      description: Retorna os projetos na ordem pedida, em ordem alfabética por padrão. O `total` sempre conta todos os projetos cadastrados, mesmo com filtro.
       tags: [Projetos]
       parameters:
         - name: favorite
@@ -31,6 +31,17 @@ paths:
           schema:
             type: string
             enum: ["true"]
+        - name: sort
+          in: query
+          description: |
+            Ordem da lista. Os empates são desfeitos pelo nome.
+            - `name`: nome, sem diferenciar maiúsculas e acentos. É o padrão.
+            - `recent`: data de início, da mais recente para a mais antiga.
+            - `deadline`: prazos de hoje em diante, do mais próximo ao mais distante, e depois os vencidos, do mais recente ao mais antigo. "Hoje" é a data em `America/Sao_Paulo`.
+          schema:
+            type: string
+            enum: [name, recent, deadline]
+            default: name
       responses:
         "200":
           description: Projetos encontrados e total de projetos cadastrados.

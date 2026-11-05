@@ -60,10 +60,21 @@ type Project struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// ListFilter narrows the projects returned by a list. The total always counts
-// every registered project.
+// Sort is the order of a list (ADR-0029).
+type Sort string
+
+// Orders accepted by the list. SortName is the default.
+const (
+	SortName     Sort = "name"
+	SortRecent   Sort = "recent"
+	SortDeadline Sort = "deadline"
+)
+
+// ListFilter narrows and orders the projects returned by a list. The total
+// always counts every registered project.
 type ListFilter struct {
 	FavoritesOnly bool
+	Sort          Sort
 }
 
 // Input holds the values sent by a client. The dates stay as text until

@@ -60,14 +60,31 @@ func (r *Repository) Create(ctx context.Context, fields Fields) (Project, error)
 	return project, nil
 }
 
-// List returns the projects that match the filter in alphabetical order,
-// ignoring case and accents.
+// byName orders by name ignoring case and accents, and breaks the remaining ties.
+const byName = `p.name COLLATE "pt-BR-x-icu", p.id`
+
+// orderBy holds the ORDER BY of each sort. Only these fixed clauses reach the query.
+var orderBy = map[Sort]string{
+	SortName:   byName,
+	SortRecent: `p.start_date DESC, ` + byName,
+	// Deadlines from today on come first, from the nearest, and then the expired
+	// ones, from the most recent. Today is the date in São Paulo (ADR-0029).
+	SortDeadline: `p.end_date < today, CASE WHEN p.end_date >= today THEN p.end_date END, p.end_date DESC, ` + byName,
+}
+
+// List returns the projects that match the filter, in the order it asks for.
 func (r *Repository) List(ctx context.Context, filter ListFilter) ([]Project, error) {
+	order, ok := orderBy[filter.Sort]
+	if !ok {
+		order = orderBy[SortName]
+	}
+
 	rows, err := r.db.Query(ctx,
 		`SELECT `+columns+`
-		 FROM projects p `+joinCovers+`
+		 FROM projects p `+joinCovers+`,
+		      LATERAL (SELECT (now() AT TIME ZONE 'America/Sao_Paulo')::date AS today) t
 		 WHERE NOT $1 OR p.favorite
-		 ORDER BY p.name COLLATE "pt-BR-x-icu", p.id`,
+		 ORDER BY `+order,
 		filter.FavoritesOnly,
 	)
 	if err != nil {
