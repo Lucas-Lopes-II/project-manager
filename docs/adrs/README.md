@@ -31,6 +31,7 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0023](0023-capa-enviada-junto-com-o-projeto.md) | Capa enviada junto com o projeto | Accepted | F6 |
 | [0024](0024-campos-de-data-nativos.md) | Campos de data nativos, com o visual do design | Accepted | F6 |
 | [0025](0025-formulario-de-edicao-busca-na-api.md) | Formulário de edição busca o projeto na API | Accepted | F7 |
+| [0026](0026-modal-com-dialog-nativo.md) | Modal com o elemento `<dialog>` nativo | Accepted | F8 |
 
 ## Modelo
 

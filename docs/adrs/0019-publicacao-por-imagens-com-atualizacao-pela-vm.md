@@ -34,4 +34,4 @@ Cada merge na `main` precisa chegar à produção sem passo manual e sem publica
 - O GitHub não tem nenhum acesso à VM, e um vazamento no CI não a alcança.
 - Um merge leva alguns minutos para chegar à produção.
 - O pipeline não mostra se a VM aplicou a atualização. A verificação é feita na própria VM, com os logs do timer.
-- Durante a atualização, o serviço recriado fica fora do ar por alguns segundos.
+- Durante a atualização, a aplicação fica fora do ar por alguns segundos, enquanto os containers são recriados. Na publicação da F7, medida com uma verificação por segundo, foram cerca de 6 segundos com erro 502, e a versão nova entrou no ar 6 minutos e 23 segundos depois do merge. Por isso, um merge durante uma avaliação derruba a aplicação por esse tempo.
