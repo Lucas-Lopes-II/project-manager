@@ -27,14 +27,26 @@ export interface ProjectInput {
   removeCover?: boolean
 }
 
+/** The orders of the list (ADR-0029). `name` is the default. */
+export type ProjectSort = 'name' | 'recent' | 'deadline'
+
 export interface ListFilter {
   favoritesOnly?: boolean
+  sort?: ProjectSort
 }
 
 /** The total of the answer always counts every registered project, whatever the filter. */
 export function listProjects(signal?: AbortSignal, filter: ListFilter = {}): Promise<ProjectList> {
-  const query = filter.favoritesOnly ? '?favorite=true' : ''
-  return request<ProjectList>(`/projects${query}`, { signal })
+  const params = new URLSearchParams()
+  if (filter.favoritesOnly) {
+    params.set('favorite', 'true')
+  }
+  if (filter.sort && filter.sort !== 'name') {
+    params.set('sort', filter.sort)
+  }
+
+  const query = params.toString()
+  return request<ProjectList>(query ? `/projects?${query}` : '/projects', { signal })
 }
 
 /** Marks or unmarks a project. Repeating it gives the same result. */

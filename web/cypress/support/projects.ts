@@ -15,15 +15,28 @@ export function resetProjects(): void {
   })
 }
 
-export function createProject(name: string): Cypress.Chainable<string> {
+export interface ProjectDates {
+  start_date: string
+  end_date: string
+}
+
+export function createProject(
+  name: string,
+  dates: ProjectDates = { start_date: '2026-11-05', end_date: '2026-12-12' },
+): Cypress.Chainable<string> {
   return cy
-    .request<{ id: string }>('POST', PROJECTS_URL, {
-      name,
-      client: 'Clicksign',
-      start_date: '2026-11-05',
-      end_date: '2026-12-12',
-    })
+    .request<{ id: string }>('POST', PROJECTS_URL, { name, client: 'Clicksign', ...dates })
     .its('body.id')
+}
+
+/** A date relative to today in São Paulo, the "today" of the API (ADR-0029). */
+export function dayFromToday(offset: number): string {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+    new Date(),
+  )
+  const date = new Date(`${today}T12:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + offset)
+  return date.toISOString().slice(0, 10)
 }
 
 export interface ProjectList {

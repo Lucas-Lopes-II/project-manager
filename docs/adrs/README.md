@@ -34,6 +34,9 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0026](0026-modal-com-dialog-nativo.md) | Modal com o elemento `<dialog>` nativo | Accepted | F8 |
 | [0027](0027-favorito-como-sub-recurso.md) | Favorito como sub-recurso do projeto | Accepted | F9 |
 | [0028](0028-filtros-da-listagem-na-api.md) | Filtros da listagem na API, com o estado na URL | Accepted | F9 |
+| [0029](0029-ordem-por-prazo-com-vencidos-no-fim.md) | Ordem por prazo, com os vencidos no fim | Accepted | F10 |
+| [0030](0030-select-proprio-acessivel.md) | Select próprio e acessível | Accepted | F10 |
+| [0031](0031-publicacao-com-espera-no-lugar-do-erro.md) | Publicação com espera no lugar do erro | Accepted | F10 |
 
 ## Modelo
 

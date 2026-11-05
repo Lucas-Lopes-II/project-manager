@@ -3,15 +3,29 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, wa
 import { useRoute, useRouter } from 'vue-router'
 
 import BaseButton from '@/shared/ui/BaseButton.vue'
+import BaseSelect from '@/shared/ui/BaseSelect.vue'
 import BaseToggle from '@/shared/ui/BaseToggle.vue'
 import MessageCard from '@/shared/ui/MessageCard.vue'
 
-import type { Project } from '../api'
+import type { Project, ProjectSort } from '../api'
 import ProjectCard from '../components/ProjectCard.vue'
 import RemoveProjectDialog from '../components/RemoveProjectDialog.vue'
 import { useProjectsStore } from '../store'
 
 const FAVORITE_FAILURE = 'Não foi possível atualizar o favorito. Tente novamente.'
+
+const SORT_OPTIONS: { value: ProjectSort; label: string }[] = [
+  { value: 'name', label: 'Ordem alfabética' },
+  { value: 'recent', label: 'Iniciados mais recentes' },
+  { value: 'deadline', label: 'Prazo mais próximo' },
+]
+
+/** How each order appears in the address. The default one is left out. */
+const SORT_IN_ADDRESS: Record<ProjectSort, string | undefined> = {
+  name: undefined,
+  recent: 'recentes',
+  deadline: 'prazo',
+}
 
 const projects = useProjectsStore()
 const route = useRoute()
@@ -29,12 +43,20 @@ const favoritesOnly = computed({
   },
 })
 
+const sort = computed({
+  get: (): ProjectSort =>
+    SORT_OPTIONS.find(({ value }) => SORT_IN_ADDRESS[value] === route.query.ordem)?.value ?? 'name',
+  set: (value: ProjectSort) => {
+    void router.replace({ query: { ...route.query, ordem: SORT_IN_ADDRESS[value] } })
+  },
+})
+
 function load(keepItems = false): Promise<void> {
   projects.listQuery = { ...route.query }
-  return projects.load({ favoritesOnly: favoritesOnly.value, keepItems })
+  return projects.load({ favoritesOnly: favoritesOnly.value, sort: sort.value, keepItems })
 }
 
-watch(favoritesOnly, () => {
+watch([favoritesOnly, sort], () => {
   favoriteFailure.value = undefined
   void load(true)
 })
@@ -107,6 +129,7 @@ onBeforeUnmount(() => projects.cancel())
           </h1>
           <div class="controls">
             <BaseToggle v-model="favoritesOnly">Apenas Favoritos</BaseToggle>
+            <BaseSelect v-model="sort" :options="SORT_OPTIONS" label="Ordenar projetos" />
             <BaseButton class="new-project" size="small" :to="{ name: 'project-new' }">
               <img src="@/shared/assets/icons/plus-circle.svg" alt="" width="24" height="24" />
               Novo projeto

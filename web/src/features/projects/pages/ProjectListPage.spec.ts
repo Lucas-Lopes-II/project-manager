@@ -226,7 +226,7 @@ describe('ProjectListPage', () => {
       const wrapper = mountPage()
       await flushPromises()
 
-      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true })
+      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true, sort: 'name' })
       expect((toggle(wrapper).element as HTMLInputElement).checked).toBe(true)
       expect(wrapper.get('h1').text()).toBe('Projetos (2)')
       expect(useProjectsStore().listQuery).toEqual({ favoritos: 'true' })
@@ -242,7 +242,7 @@ describe('ProjectListPage', () => {
       await flushPromises()
 
       expect(router.currentRoute.value.query).toEqual({ favoritos: 'true' })
-      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({ favoritesOnly: true })
+      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({ favoritesOnly: true, sort: 'name' })
       expect(wrapper.findAll('article')).toHaveLength(2)
       expect(wrapper.get('[role="status"]').text()).toBe('')
     })
@@ -290,6 +290,50 @@ describe('ProjectListPage', () => {
       expect(wrapper.find('article').exists()).toBe(false)
       expect(wrapper.text()).toContain('Nenhum projeto favorito')
       expect(document.activeElement).toBe(wrapper.get('h1').element)
+    })
+  })
+
+  describe('sort', () => {
+    it('reads the order from the address and asks the API for it', async () => {
+      listProjectsMock.mockResolvedValue({ items: [sampleProject('1', 'Projeto Alfa')], total: 1 })
+      await router.replace('/?ordem=prazo&favoritos=true')
+
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true, sort: 'deadline' })
+      expect(wrapper.get('[role="combobox"]').text()).toBe('Prazo mais próximo')
+    })
+
+    it('writes the chosen order in the address, and leaves the default one out', async () => {
+      listProjectsMock.mockResolvedValue({ items: [sampleProject('1', 'Projeto Alfa')], total: 1 })
+      const wrapper = mountPage()
+      await flushPromises()
+      const combobox = wrapper.get('[role="combobox"]')
+
+      await combobox.trigger('click')
+      await wrapper.findAll('[role="option"]')[1]!.trigger('click')
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({ ordem: 'recentes' })
+      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({ favoritesOnly: false, sort: 'recent' })
+
+      await combobox.trigger('click')
+      await wrapper.findAll('[role="option"]')[0]!.trigger('click')
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({})
+    })
+
+    it('treats an unknown order in the address as the alphabetical one', async () => {
+      listProjectsMock.mockResolvedValue({ items: [sampleProject('1', 'Projeto Alfa')], total: 1 })
+      await router.replace('/?ordem=outra')
+
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: false, sort: 'name' })
+      expect(wrapper.get('[role="combobox"]').text()).toBe('Ordem alfabética')
     })
   })
 })

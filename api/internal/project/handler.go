@@ -39,13 +39,24 @@ func (h *Handler) Register(mux *http.ServeMux) {
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
-	var filter ListFilter
-	switch r.URL.Query().Get("favorite") {
+	query := r.URL.Query()
+	filter := ListFilter{Sort: SortName}
+
+	switch query.Get("favorite") {
 	case "":
 	case "true":
 		filter.FavoritesOnly = true
 	default:
 		httpx.WriteProblem(w, r, http.StatusBadRequest, "O filtro favorite aceita apenas o valor true.")
+		return
+	}
+
+	switch sort := Sort(query.Get("sort")); sort {
+	case "":
+	case SortName, SortRecent, SortDeadline:
+		filter.Sort = sort
+	default:
+		httpx.WriteProblem(w, r, http.StatusBadRequest, "A ordenação aceita apenas name, recent e deadline.")
 		return
 	}
 
