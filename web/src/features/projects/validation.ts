@@ -2,7 +2,7 @@ import type { ApiError } from '@/shared/api/client'
 
 import type { ProjectInput } from './api'
 
-export type ProjectField = keyof ProjectInput
+export type ProjectField = 'name' | 'client' | 'start_date' | 'end_date' | 'cover'
 export type ProjectErrors = Partial<Record<ProjectField, string>>
 export type CoverProblem = 'invalid_image' | 'max_size'
 

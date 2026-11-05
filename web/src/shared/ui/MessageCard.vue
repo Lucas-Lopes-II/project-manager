@@ -2,11 +2,13 @@
 defineProps<{
   title?: string
   text?: string
+  /** Waits before showing, so that quick answers replace the card without flickering. */
+  delayed?: boolean
 }>()
 </script>
 
 <template>
-  <div class="card">
+  <div class="card" :class="{ delayed }">
     <h1 v-if="title" class="title">{{ title }}</h1>
     <p v-if="text" class="text">{{ text }}</p>
     <slot />
@@ -26,6 +28,20 @@ defineProps<{
   border-radius: var(--radius-field);
   background: var(--color-surface);
   text-align: center;
+}
+
+.delayed {
+  animation: reveal 0s 300ms both;
+}
+
+@keyframes reveal {
+  from {
+    visibility: hidden;
+  }
+
+  to {
+    visibility: visible;
+  }
 }
 
 .title {

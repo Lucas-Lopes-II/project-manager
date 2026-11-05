@@ -16,11 +16,7 @@ onBeforeUnmount(() => projects.cancel())
 <template>
   <!-- The live region stays in the page, so that screen readers announce what appears inside it. -->
   <div role="status">
-    <MessageCard
-      v-if="projects.status === 'loading'"
-      class="delayed"
-      text="Carregando projetos..."
-    />
+    <MessageCard v-if="projects.status === 'loading'" delayed text="Carregando projetos..." />
   </div>
 
   <MessageCard
@@ -64,21 +60,6 @@ onBeforeUnmount(() => projects.cancel())
 </template>
 
 <style scoped>
-/* Quick answers replace the card before it shows, so the text does not flicker. */
-.delayed {
-  animation: reveal 0s 300ms both;
-}
-
-@keyframes reveal {
-  from {
-    visibility: hidden;
-  }
-
-  to {
-    visibility: visible;
-  }
-}
-
 .toolbar {
   display: flex;
   flex-wrap: wrap;

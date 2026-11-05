@@ -6,12 +6,13 @@ import CoverField from './CoverField.vue'
 
 const png = new File(['image'], 'capa.png', { type: 'image/png' })
 
-function mountField(props: { error?: string } = {}) {
+function mountField(props: { error?: string; currentUrl?: string | null } = {}) {
   const wrapper = mount(CoverField, {
     attachTo: document.body,
     props: {
       modelValue: null as File | null,
       'onUpdate:modelValue': (file: File | null) => wrapper.setProps({ modelValue: file }),
+      'onUpdate:currentUrl': (url: string | null) => wrapper.setProps({ currentUrl: url }),
       ...props,
     },
   })
@@ -132,5 +133,41 @@ describe('CoverField', () => {
     wrapper.unmount()
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview')
+  })
+
+  it('shows the cover already saved until it is removed', async () => {
+    const wrapper = mountField({ currentUrl: '/api/v1/projects/1/cover?v=1' })
+
+    expect(wrapper.get('img[alt="Prévia da capa"]').attributes('src')).toBe(
+      '/api/v1/projects/1/cover?v=1',
+    )
+    expect(wrapper.text()).not.toContain('Escolha uma imagem')
+
+    await wrapper.get('button[aria-label="Remover capa"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.props('currentUrl')).toBeNull()
+    expect(wrapper.text()).toContain('Escolha uma imagem')
+  })
+
+  it('replaces the removed cover with a new file', async () => {
+    const wrapper = mountField({ currentUrl: '/api/v1/projects/1/cover?v=1' })
+    await wrapper.get('button[aria-label="Remover capa"]').trigger('click')
+    await flushPromises()
+
+    await choose(wrapper, png)
+
+    expect(wrapper.props('modelValue')).toBe(png)
+    expect(wrapper.get('img[alt="Prévia da capa"]').attributes('src')).toBe('blob:preview')
+  })
+
+  it('does not refuse the saved cover when it fails to load', async () => {
+    const wrapper = mountField({ currentUrl: '/api/v1/projects/1/cover?v=1' })
+
+    await wrapper.get('img[alt="Prévia da capa"]').trigger('error')
+    await flushPromises()
+
+    expect(wrapper.props('currentUrl')).toBe('/api/v1/projects/1/cover?v=1')
+    expect(wrapper.find('p.error').exists()).toBe(false)
   })
 })

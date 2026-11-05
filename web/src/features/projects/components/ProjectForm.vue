@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import calendarCheckIcon from '@/shared/assets/icons/calendar-check.svg'
 import calendarDayIcon from '@/shared/assets/icons/calendar-day.svg'
@@ -7,11 +7,13 @@ import BaseButton from '@/shared/ui/BaseButton.vue'
 import DateField from '@/shared/ui/DateField.vue'
 import TextField from '@/shared/ui/TextField.vue'
 
-import type { ProjectInput } from '../api'
+import type { Project, ProjectInput } from '../api'
 import { hasErrors, validateProject, type ProjectErrors, type ProjectField } from '../validation'
 import CoverField from './CoverField.vue'
 
 const props = defineProps<{
+  /** The project being edited. The form starts from it and does not follow later changes. */
+  project?: Project
   saving?: boolean
   /** Errors from the last attempt, which the parent clears when the form changes. */
   serverErrors?: ProjectErrors
@@ -24,12 +26,14 @@ const emit = defineEmits<{
 }>()
 
 const values = reactive<ProjectInput>({
-  name: '',
-  client: '',
-  start_date: '',
-  end_date: '',
+  name: props.project?.name ?? '',
+  client: props.project?.client ?? '',
+  start_date: props.project?.start_date ?? '',
+  end_date: props.project?.end_date ?? '',
   cover: null,
 })
+
+const currentCoverUrl = ref(props.project?.cover_url ?? null)
 
 const touched = reactive<Partial<Record<ProjectField, boolean>>>({})
 
@@ -39,7 +43,7 @@ const canSave = computed(
   () => !props.saving && !hasErrors(errors.value) && !hasErrors(props.serverErrors ?? {}),
 )
 
-watch(values, () => emit('change'))
+watch([values, currentCoverUrl], () => emit('change'))
 
 /** A field only shows its rule after the person leaves it. */
 function errorOf(field: ProjectField): string | undefined {
@@ -48,7 +52,8 @@ function errorOf(field: ProjectField): string | undefined {
 
 function submit(): void {
   if (canSave.value) {
-    emit('submit', { ...values })
+    const hadCover = Boolean(props.project?.cover_url)
+    emit('submit', { ...values, removeCover: hadCover && !currentCoverUrl.value })
   }
 }
 </script>
@@ -89,7 +94,11 @@ function submit(): void {
       />
     </div>
 
-    <CoverField v-model="values.cover" :error="serverErrors?.cover" />
+    <CoverField
+      v-model="values.cover"
+      v-model:current-url="currentCoverUrl"
+      :error="serverErrors?.cover"
+    />
 
     <p v-if="failure" class="failure" role="alert">{{ failure }}</p>
 

@@ -28,6 +28,11 @@ describe('AppHeader', () => {
     expect(wrapper.find('button').exists()).toBe(false)
     expect(wrapper.get('img').attributes('alt')).toBe('Gerenciador de Projetos')
 
+    await router.push('/projetos/1/editar')
+    await flushPromises()
+
+    expect(wrapper.find('button').exists()).toBe(false)
+
     await router.push('/')
     await flushPromises()
 
