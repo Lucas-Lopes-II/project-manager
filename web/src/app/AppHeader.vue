@@ -1,9 +1,15 @@
+<script setup lang="ts">
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+</script>
+
 <template>
   <header class="header">
     <RouterLink class="logo" :to="{ name: 'projects' }">
       <img src="@/shared/assets/logo.svg" alt="Gerenciador de Projetos" width="193" height="72" />
     </RouterLink>
-    <button class="search" type="button" aria-label="Buscar projetos">
+    <button v-if="!route.meta.hideSearch" class="search" type="button" aria-label="Buscar projetos">
       <img src="@/shared/assets/icons/search.svg" alt="" width="20" height="20" />
     </button>
   </header>

@@ -7,6 +7,7 @@ type Store interface {
 	Create(ctx context.Context, fields Fields) (Project, error)
 	List(ctx context.Context) ([]Project, error)
 	Get(ctx context.Context, id string) (Project, error)
+	GetCover(ctx context.Context, id string) (StoredCover, error)
 	Update(ctx context.Context, id string, fields Fields) (Project, error)
 	Delete(ctx context.Context, id string) error
 }
@@ -51,6 +52,14 @@ func (s *Service) Get(ctx context.Context, id string) (Project, error) {
 		return Project{}, ErrNotFound
 	}
 	return s.store.Get(ctx, id)
+}
+
+// Cover returns the cover of a project.
+func (s *Service) Cover(ctx context.Context, id string) (StoredCover, error) {
+	if !idPattern.MatchString(id) {
+		return StoredCover{}, ErrCoverNotFound
+	}
+	return s.store.GetCover(ctx, id)
 }
 
 // Update validates the input and replaces the fields of a project.

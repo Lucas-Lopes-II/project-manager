@@ -27,6 +27,9 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0019](0019-publicacao-por-imagens-com-atualizacao-pela-vm.md) | Publicação por imagens, com atualização a partir da VM | Accepted | F4 |
 | [0020](0020-estados-sem-design.md) | Estados sem design | Accepted | F5 |
 | [0021](0021-testes-e2e-com-cypress.md) | Testes E2E com Cypress contra a aplicação real | Accepted | F5 |
+| [0022](0022-capas-no-postgresql.md) | Capas no PostgreSQL | Accepted | F6 |
+| [0023](0023-capa-enviada-junto-com-o-projeto.md) | Capa enviada junto com o projeto | Accepted | F6 |
+| [0024](0024-campos-de-data-nativos.md) | Campos de data nativos, com o visual do design | Accepted | F6 |
 
 ## Modelo
 

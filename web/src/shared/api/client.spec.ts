@@ -37,6 +37,18 @@ describe('request', () => {
     )
   })
 
+  it('lets the browser set the Content-Type of a form', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(201, {}))
+    const form = new FormData()
+
+    await request('/projects', { method: 'POST', body: form })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/projects',
+      expect.objectContaining({ method: 'POST', body: form, headers: undefined }),
+    )
+  })
+
   it('sends the body as JSON', async () => {
     fetchMock.mockResolvedValue(jsonResponse(201, {}))
 

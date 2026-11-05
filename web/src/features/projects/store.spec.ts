@@ -16,6 +16,7 @@ const project: Project = {
   client: 'Clicksign',
   start_date: '2026-11-04',
   end_date: '2026-12-12',
+  cover_url: null,
   created_at: '2026-11-04T18:21:55Z',
   updated_at: '2026-11-04T18:21:55Z',
 }

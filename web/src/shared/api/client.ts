@@ -37,13 +37,16 @@ export interface RequestOptions {
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, signal } = options
 
+  // The browser sets the Content-Type of a form, because it includes the boundary.
+  const isJson = body !== undefined && !(body instanceof FormData)
+
   let response: Response
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       signal,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: isJson ? { 'Content-Type': 'application/json' } : undefined,
+      body: isJson ? JSON.stringify(body) : (body as FormData | undefined),
     })
   } catch (error) {
     if (isAbortError(error)) {

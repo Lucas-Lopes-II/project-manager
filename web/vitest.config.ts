@@ -8,6 +8,7 @@ export default mergeConfig(
     test: {
       environment: 'jsdom',
       exclude: [...configDefaults.exclude, 'cypress/**'],
+      setupFiles: ['./src/testing/setup.ts'],
       root: fileURLToPath(new URL('./', import.meta.url)),
     },
   }),

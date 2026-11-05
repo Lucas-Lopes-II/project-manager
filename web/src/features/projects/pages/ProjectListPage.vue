@@ -4,6 +4,7 @@ import { onBeforeUnmount, onMounted } from 'vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import MessageCard from '@/shared/ui/MessageCard.vue'
 
+import ProjectCard from '../components/ProjectCard.vue'
 import { useProjectsStore } from '../store'
 
 const projects = useProjectsStore()
@@ -31,9 +32,23 @@ onBeforeUnmount(() => projects.cancel())
   </MessageCard>
 
   <template v-else-if="projects.status === 'ready'">
-    <h1 v-if="projects.total > 0" class="title">
-      Projetos <span class="count">({{ projects.total }})</span>
-    </h1>
+    <template v-if="projects.total > 0">
+      <div class="toolbar">
+        <h1 class="title">
+          Projetos <span class="count">({{ projects.total }})</span>
+        </h1>
+        <BaseButton class="new-project" size="small" :to="{ name: 'project-new' }">
+          <img src="@/shared/assets/icons/plus-circle.svg" alt="" width="24" height="24" />
+          Novo projeto
+        </BaseButton>
+      </div>
+
+      <ul class="grid">
+        <li v-for="project in projects.items" :key="project.id" class="item">
+          <ProjectCard :project="project" />
+        </li>
+      </ul>
+    </template>
 
     <MessageCard
       v-else
@@ -64,16 +79,41 @@ onBeforeUnmount(() => projects.cancel())
   }
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-inline: var(--space-page-inset);
+}
+
 .title {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-inline: var(--space-page-inset);
-  padding-block: 5px 6px;
   color: var(--color-heading);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   line-height: 29px;
+}
+
+.new-project {
+  justify-content: flex-start;
+  min-width: 184px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(346px, 100%), 1fr));
+  gap: var(--space-grid);
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
 }
 
 .count {

@@ -1,7 +1,11 @@
 package project
 
 import (
+	"bytes"
 	"errors"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"reflect"
 	"strings"
 	"testing"
@@ -149,4 +153,103 @@ func TestInput_Validate_NormalizesText(t *testing.T) {
 	if fields.Client != "Click sign" {
 		t.Errorf("Client = %q", fields.Client)
 	}
+}
+
+func TestInput_Validate_AcceptsCovers(t *testing.T) {
+	tests := []struct {
+		name        string
+		content     []byte
+		contentType string
+	}{
+		{name: "PNG", content: testPNG(t), contentType: "image/png"},
+		{name: "JPEG", content: testJPEG(t), contentType: "image/jpeg"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := validInput()
+			in.Cover = tt.content
+
+			fields, err := in.Validate()
+			if err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+			if fields.Cover == nil || fields.Cover.ContentType != tt.contentType {
+				t.Errorf("Cover = %+v, want %s", fields.Cover, tt.contentType)
+			}
+		})
+	}
+}
+
+func TestInput_Validate_CoverIsOptional(t *testing.T) {
+	fields, err := validInput().Validate()
+	if err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+	if fields.Cover != nil {
+		t.Errorf("Cover = %+v, want nil", fields.Cover)
+	}
+}
+
+func TestInput_Validate_RejectsInvalidCovers(t *testing.T) {
+	tooLarge := append(testPNG(t), make([]byte, maxCoverBytes)...)
+
+	tests := []struct {
+		name    string
+		content []byte
+		code    string
+	}{
+		{name: "not an image", content: []byte("not an image"), code: CodeInvalidImage},
+		{name: "empty file", content: []byte{}, code: CodeInvalidImage},
+		{name: "GIF", content: []byte("GIF89a\x01\x00\x01\x00\x00\x00\x00"), code: CodeInvalidImage},
+		{name: "above the limit", content: tooLarge, code: CodeMaxSize},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := validInput()
+			in.Cover = tt.content
+
+			_, err := in.Validate()
+
+			var validation *ValidationError
+			if !errors.As(err, &validation) {
+				t.Fatalf("Validate() error = %v, want a ValidationError", err)
+			}
+			want := []FieldError{{Field: "cover", Code: tt.code}}
+			if !reflect.DeepEqual(validation.Errors, want) {
+				t.Errorf("errors = %+v, want %+v", validation.Errors, want)
+			}
+		})
+	}
+}
+
+func TestParseCover_AcceptsTheSizeLimit(t *testing.T) {
+	png := testPNG(t)
+	content := append(png, make([]byte, maxCoverBytes-len(png))...)
+
+	cover, fieldErr := parseCover(content)
+	if fieldErr != nil || cover == nil {
+		t.Errorf("parseCover() = %+v, %+v, want a cover", cover, fieldErr)
+	}
+}
+
+func testPNG(t *testing.T) []byte {
+	t.Helper()
+
+	var buffer bytes.Buffer
+	if err := png.Encode(&buffer, image.NewRGBA(image.Rect(0, 0, 2, 2))); err != nil {
+		t.Fatalf("encode PNG: %v", err)
+	}
+	return buffer.Bytes()
+}
+
+func testJPEG(t *testing.T) []byte {
+	t.Helper()
+
+	var buffer bytes.Buffer
+	if err := jpeg.Encode(&buffer, image.NewRGBA(image.Rect(0, 0, 2, 2)), nil); err != nil {
+		t.Fatalf("encode JPEG: %v", err)
+	}
+	return buffer.Bytes()
 }

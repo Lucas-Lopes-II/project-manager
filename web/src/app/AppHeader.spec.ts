@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import AppHeader from './AppHeader.vue'
@@ -19,5 +19,18 @@ describe('AppHeader', () => {
 
     expect(button.attributes('type')).toBe('button')
     expect(button.attributes('aria-label')).toBe('Buscar projetos')
+  })
+
+  it('hides the search on the form pages, as in the design', async () => {
+    await router.push('/projetos/novo')
+    await flushPromises()
+
+    expect(wrapper.find('button').exists()).toBe(false)
+    expect(wrapper.get('img').attributes('alt')).toBe('Gerenciador de Projetos')
+
+    await router.push('/')
+    await flushPromises()
+
+    expect(wrapper.find('button').exists()).toBe(true)
   })
 })

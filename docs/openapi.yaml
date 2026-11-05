@@ -36,9 +36,10 @@ paths:
     post:
       operationId: createProject
       summary: Cria um projeto
+      description: Aceita JSON, sem capa, ou `multipart/form-data`, com capa opcional. O projeto e a capa são gravados juntos.
       tags: [Projetos]
       requestBody:
-        $ref: "#/components/requestBodies/ProjectInput"
+        $ref: "#/components/requestBodies/ProjectCreate"
       responses:
         "201":
           description: Projeto criado.
@@ -120,6 +121,42 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/v1/projects/{id}/cover:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getProjectCover
+      summary: Retorna a capa de um projeto
+      description: O endereço informado em `cover_url` pode ficar em cache por um ano, porque muda a cada nova capa. Sem a versão atual em `v`, a resposta precisa ser revalidada.
+      tags: [Projetos]
+      parameters:
+        - name: v
+          in: query
+          description: Versão da capa, informada em `cover_url`.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Imagem da capa.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: "#/components/responses/CoverNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /health:
     get:
       operationId: getHealth
@@ -162,9 +199,27 @@ components:
           schema:
             $ref: "#/components/schemas/ProjectInput"
 
+    ProjectCreate:
+      required: true
+      description: Campos do projeto. O JSON tem limite de 1 MB, e o formulário comporta uma capa de até 5 MB.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProjectInput"
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ProjectInput"
+              - type: object
+                properties:
+                  cover:
+                    type: string
+                    format: binary
+                    description: Imagem JPEG ou PNG de até 5 MB. O formato é identificado pelo conteúdo do arquivo.
+
   responses:
     BadRequest:
-      description: O corpo da requisição não é um JSON válido.
+      description: O corpo da requisição não é um JSON ou um formulário válido.
       content:
         application/problem+json:
           schema:
@@ -175,8 +230,14 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    CoverNotFound:
+      description: O projeto não existe ou não tem capa.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
     ContentTooLarge:
-      description: O corpo da requisição excede 1 MB.
+      description: O corpo da requisição excede o limite do seu formato.
       content:
         application/problem+json:
           schema:
@@ -234,7 +295,7 @@ components:
 
     Project:
       type: object
-      required: [id, name, client, start_date, end_date, created_at, updated_at]
+      required: [id, name, client, start_date, end_date, cover_url, created_at, updated_at]
       properties:
         id:
           type: string
@@ -254,6 +315,10 @@ components:
           type: string
           format: date
           example: "2026-12-12"
+        cover_url:
+          type: [string, "null"]
+          description: Endereço da capa, ou `null` quando o projeto não tem capa.
+          example: /api/v1/projects/61705246-aacf-4373-875a-08f4dd31428c/cover?v=1793816515000000
         created_at:
           type: string
           format: date-time
@@ -317,7 +382,7 @@ components:
       properties:
         field:
           type: string
-          enum: [name, client, start_date, end_date]
+          enum: [name, client, start_date, end_date, cover]
         code:
           type: string
           description: |
@@ -325,4 +390,6 @@ components:
             - `max_length`: mais de 120 caracteres.
             - `invalid_date`: data ausente ou inválida.
             - `invalid_date_range`: a data final não é posterior à inicial.
-          enum: [min_words, max_length, invalid_date, invalid_date_range]
+            - `invalid_image`: o arquivo não é uma imagem JPEG ou PNG.
+            - `max_size`: a imagem tem mais de 5 MB.
+          enum: [min_words, max_length, invalid_date, invalid_date_range, invalid_image, max_size]

@@ -1,6 +1,7 @@
 package project
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -110,5 +111,61 @@ func TestAPI_ProjectLifecycle(t *testing.T) {
 	status, _, _ = call(t, server, http.MethodGet, location, "")
 	if status != http.StatusNotFound {
 		t.Errorf("get after delete: status = %d", status)
+	}
+}
+
+func TestAPI_ProjectWithCover(t *testing.T) {
+	pool := emptyDatabase(t)
+
+	logger := slog.New(slog.DiscardHandler)
+	mux := http.NewServeMux()
+	NewHandler(NewService(NewRepository(pool)), logger).Register(mux)
+	server := httptest.NewServer(httpx.NewHandler(mux, logger))
+	defer server.Close()
+
+	image := testPNG(t)
+	body, contentType := newForm(t, validFormFields(), image)
+	res, err := server.Client().Post(server.URL+basePath, contentType, body)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: status = %d", res.StatusCode)
+	}
+	var created struct {
+		ID       string  `json:"id"`
+		CoverURL *string `json:"cover_url"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&created); err != nil {
+		t.Fatalf("decode project: %v", err)
+	}
+	if created.CoverURL == nil {
+		t.Fatal("cover_url = null, want the address of the image")
+	}
+
+	cover, err := server.Client().Get(server.URL + *created.CoverURL)
+	if err != nil {
+		t.Fatalf("get cover: %v", err)
+	}
+	defer cover.Body.Close()
+	got, err := io.ReadAll(cover.Body)
+	if err != nil {
+		t.Fatalf("read cover: %v", err)
+	}
+	if cover.StatusCode != http.StatusOK || !bytes.Equal(got, image) {
+		t.Errorf("cover: status = %d, %d bytes, want %d", cover.StatusCode, len(got), len(image))
+	}
+	if got := cover.Header.Get("Content-Type"); got != "image/png" {
+		t.Errorf("Content-Type = %q", got)
+	}
+
+	status, _, _ := call(t, server, http.MethodDelete, basePath+"/"+created.ID, "")
+	if status != http.StatusNoContent {
+		t.Fatalf("delete: status = %d", status)
+	}
+	status, _, _ = call(t, server, http.MethodGet, coverPath(created.ID), "")
+	if status != http.StatusNotFound {
+		t.Errorf("cover after delete: status = %d, want 404", status)
 	}
 }
