@@ -21,6 +21,9 @@ jobs:
       - name: Start services
         run: docker compose up -d --wait --build
 
+      - name: Validate production file
+        run: DOMAIN=example.test docker compose -f compose.prod.yaml config --quiet
+
       - name: Show logs
         if: failure()
         run: docker compose logs
@@ -96,3 +99,35 @@ jobs:
 
       - name: Validate contract
         run: docker run --rm -v "$PWD:/spec" redocly/cli:2.75.0 lint docs/openapi.yaml
+
+  publish-images:
+    name: Publish ${{ matrix.service }} image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [compose, api, web, openapi]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [api, web]
+    env:
+      IMAGE: ghcr.io/lucas-lopes-ii/project-manager-${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to the registry
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        run: |
+          docker build \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --tag "$IMAGE:latest" \
+            --tag "$IMAGE:$GITHUB_SHA" \
+            "./${{ matrix.service }}"
+
+      - name: Push image
+        run: docker push --all-tags "$IMAGE"
