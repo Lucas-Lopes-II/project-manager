@@ -34,6 +34,7 @@
 
   /* Espaçamento */
   --space-page-inline: 40px;
+  --space-page-inset: 2px; /* a barra e o card vazio começam 2 px depois da grade */
   --space-page-top: 60px;
   --space-grid: 32px;
 
