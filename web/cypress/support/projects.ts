@@ -15,13 +15,15 @@ export function resetProjects(): void {
   })
 }
 
-export function createProject(name: string): void {
-  cy.request('POST', PROJECTS_URL, {
-    name,
-    client: 'Clicksign',
-    start_date: '2026-11-05',
-    end_date: '2026-12-12',
-  })
+export function createProject(name: string): Cypress.Chainable<string> {
+  return cy
+    .request<{ id: string }>('POST', PROJECTS_URL, {
+      name,
+      client: 'Clicksign',
+      start_date: '2026-11-05',
+      end_date: '2026-12-12',
+    })
+    .its('body.id')
 }
 
 export interface ProjectList {

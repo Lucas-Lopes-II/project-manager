@@ -90,8 +90,9 @@ paths:
       operationId: updateProject
       summary: Substitui os campos de um projeto
       tags: [Projetos]
+      description: Em JSON ou em formulário sem `cover` e sem `remove_cover`, a capa atual é mantida. Em formulário, `cover` troca a capa e `remove_cover` a remove, junto com os demais campos.
       requestBody:
-        $ref: "#/components/requestBodies/ProjectInput"
+        $ref: "#/components/requestBodies/ProjectUpdate"
       responses:
         "200":
           description: Projeto atualizado.
@@ -191,14 +192,6 @@ paths:
 
 components:
   requestBodies:
-    ProjectInput:
-      required: true
-      description: Campos do projeto, com limite de 1 MB.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ProjectInput"
-
     ProjectCreate:
       required: true
       description: Campos do projeto. O JSON tem limite de 1 MB, e o formulário comporta uma capa de até 5 MB.
@@ -216,6 +209,28 @@ components:
                     type: string
                     format: binary
                     description: Imagem JPEG ou PNG de até 5 MB. O formato é identificado pelo conteúdo do arquivo.
+
+    ProjectUpdate:
+      required: true
+      description: Campos do projeto. O JSON tem limite de 1 MB, e o formulário comporta uma capa de até 5 MB.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProjectInput"
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ProjectInput"
+              - type: object
+                properties:
+                  cover:
+                    type: string
+                    format: binary
+                    description: Imagem JPEG ou PNG de até 5 MB, que substitui a capa atual.
+                  remove_cover:
+                    type: string
+                    enum: ["true"]
+                    description: Remove a capa atual. É ignorado quando `cover` também é enviado.
 
   responses:
     BadRequest:

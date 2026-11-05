@@ -10,13 +10,18 @@ import { coverMessage, coverProblem, type CoverProblem } from '../validation'
 
 const model = defineModel<File | null>({ required: true })
 
+/** Address of the cover already saved, shown until it is removed. */
+const currentUrl = defineModel<string | null>('currentUrl', { default: null })
+
 const props = defineProps<{ error?: string }>()
 
 const input = useTemplateRef('input')
 const selectButton = useTemplateRef<InstanceType<typeof BaseButton>>('selectButton')
 
-const previewUrl = ref<string>()
+const fileUrl = ref<string>()
 const rejection = ref<CoverProblem>()
+
+const previewUrl = computed(() => fileUrl.value ?? currentUrl.value)
 
 const message = computed(
   () => props.error ?? (rejection.value ? coverMessage(rejection.value) : undefined),
@@ -26,7 +31,7 @@ watch(
   model,
   (file) => {
     releasePreview()
-    previewUrl.value = file ? URL.createObjectURL(file) : undefined
+    fileUrl.value = file ? URL.createObjectURL(file) : undefined
   },
   { immediate: true },
 )
@@ -34,8 +39,8 @@ watch(
 onBeforeUnmount(releasePreview)
 
 function releasePreview(): void {
-  if (previewUrl.value) {
-    URL.revokeObjectURL(previewUrl.value)
+  if (fileUrl.value) {
+    URL.revokeObjectURL(fileUrl.value)
   }
 }
 
@@ -53,14 +58,18 @@ function onChoose(): void {
   model.value = problem ? null : file
 }
 
-function reject(problem: CoverProblem): void {
-  rejection.value = problem
-  model.value = null
+/** A chosen file that the browser cannot show is not an image, whatever its extension says. */
+function onPreviewError(): void {
+  if (model.value) {
+    rejection.value = 'invalid_image'
+    model.value = null
+  }
 }
 
 async function remove(): Promise<void> {
   rejection.value = undefined
   model.value = null
+  currentUrl.value = null
 
   // The button that had the focus is gone, so the focus goes to the one that replaces it.
   await nextTick()
@@ -82,7 +91,7 @@ async function remove(): Promise<void> {
     />
 
     <div v-if="previewUrl" class="preview">
-      <img class="image" :src="previewUrl" alt="Prévia da capa" @error="reject('invalid_image')" />
+      <img class="image" :src="previewUrl" alt="Prévia da capa" @error="onPreviewError" />
       <button class="remove" type="button" aria-label="Remover capa" @click="remove">
         <img :src="trashIcon" alt="" width="20" height="20" />
       </button>

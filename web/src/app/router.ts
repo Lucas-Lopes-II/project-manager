@@ -23,6 +23,13 @@ const router = createRouter({
       component: () => import('@/features/projects/pages/ProjectCreatePage.vue'),
     },
     {
+      path: '/projetos/:id/editar',
+      name: 'project-edit',
+      meta: { hideSearch: true },
+      props: true,
+      component: () => import('@/features/projects/pages/ProjectEditPage.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: { name: 'projects' },
     },

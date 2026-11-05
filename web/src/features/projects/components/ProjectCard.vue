@@ -3,7 +3,10 @@ import { computed } from 'vue'
 
 import calendarCheckIcon from '@/shared/assets/icons/calendar-check.svg'
 import calendarDayIcon from '@/shared/assets/icons/calendar-day.svg'
+import editIcon from '@/shared/assets/icons/edit.svg'
 import placeholder from '@/shared/assets/project-placeholder.svg'
+import ActionMenu from '@/shared/ui/ActionMenu.vue'
+import ActionMenuItem from '@/shared/ui/ActionMenuItem.vue'
 
 import type { Project } from '../api'
 import { formatDate } from '../formatDate'
@@ -18,7 +21,14 @@ const dates = computed(() => [
 
 <template>
   <article class="card">
-    <img class="cover" :src="project.cover_url ?? placeholder" alt="" loading="lazy" />
+    <div class="media">
+      <img class="cover" :src="project.cover_url ?? placeholder" alt="" loading="lazy" />
+      <ActionMenu class="actions" :label="`Ações do projeto ${project.name}`">
+        <ActionMenuItem :to="{ name: 'project-edit', params: { id: project.id } }" :icon="editIcon">
+          Editar
+        </ActionMenuItem>
+      </ActionMenu>
+    </div>
 
     <div class="body">
       <h2 class="name" :title="project.name">{{ project.name }}</h2>
@@ -42,14 +52,23 @@ const dates = computed(() => [
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow: hidden;
-  border-radius: var(--radius-card);
+}
+
+.media {
+  position: relative;
 }
 
 .cover {
   width: 100%;
   aspect-ratio: 346 / 232;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
   object-fit: cover;
+}
+
+.actions {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
 }
 
 .body {

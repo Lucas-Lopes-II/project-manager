@@ -37,10 +37,11 @@ func decodeForm(w http.ResponseWriter, r *http.Request) (Input, bool) {
 	defer func() { _ = r.MultipartForm.RemoveAll() }()
 
 	input := Input{
-		Name:      r.PostFormValue("name"),
-		Client:    r.PostFormValue("client"),
-		StartDate: r.PostFormValue("start_date"),
-		EndDate:   r.PostFormValue("end_date"),
+		Name:        r.PostFormValue("name"),
+		Client:      r.PostFormValue("client"),
+		StartDate:   r.PostFormValue("start_date"),
+		EndDate:     r.PostFormValue("end_date"),
+		RemoveCover: r.PostFormValue("remove_cover") == "true",
 	}
 
 	file, _, err := r.FormFile("cover")

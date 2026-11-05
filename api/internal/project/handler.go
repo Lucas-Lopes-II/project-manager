@@ -93,8 +93,8 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
-	var input Input
-	if !httpx.DecodeJSON(w, r, &input) {
+	input, ok := decodeInput(w, r)
+	if !ok {
 		return
 	}
 

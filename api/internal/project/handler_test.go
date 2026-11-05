@@ -25,6 +25,7 @@ type fakeStore struct {
 	projects []Project
 	cover    StoredCover
 	created  Fields
+	updated  Fields
 	err      error
 }
 
@@ -46,6 +47,7 @@ func (f *fakeStore) GetCover(context.Context, string) (StoredCover, error) {
 }
 
 func (f *fakeStore) Update(_ context.Context, _ string, fields Fields) (Project, error) {
+	f.updated = fields
 	return f.result(fields)
 }
 

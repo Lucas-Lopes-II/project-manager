@@ -224,6 +224,29 @@ func TestInput_Validate_RejectsInvalidCovers(t *testing.T) {
 	}
 }
 
+func TestInput_Validate_RemoveCover(t *testing.T) {
+	in := validInput()
+	in.RemoveCover = true
+
+	fields, err := in.Validate()
+	if err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+	if !fields.RemoveCover {
+		t.Error("RemoveCover = false, want true")
+	}
+
+	in.Cover = testPNG(t)
+
+	fields, err = in.Validate()
+	if err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+	if fields.RemoveCover || fields.Cover == nil {
+		t.Errorf("Fields = %+v, want the new file to win", fields)
+	}
+}
+
 func TestParseCover_AcceptsTheSizeLimit(t *testing.T) {
 	png := testPNG(t)
 	content := append(png, make([]byte, maxCoverBytes-len(png))...)
