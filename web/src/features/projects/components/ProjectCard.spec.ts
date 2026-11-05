@@ -69,8 +69,21 @@ describe('ProjectCard', () => {
     await toggle.trigger('click')
     await flushPromises()
 
-    const item = wrapper.get('[role="menuitem"]')
-    expect(item.text()).toBe('Editar')
-    expect(item.attributes('href')).toBe('/projetos/1/editar')
+    const [edit, remove] = wrapper.findAll('[role="menuitem"]')
+    expect(edit!.text()).toBe('Editar')
+    expect(edit!.attributes('href')).toBe('/projetos/1/editar')
+    expect(remove!.text()).toBe('Remover')
+    expect(remove!.element.tagName).toBe('BUTTON')
+    expect(remove!.attributes('type')).toBe('button')
+  })
+
+  it('asks the page to remove the project', async () => {
+    const wrapper = mountCard()
+
+    await wrapper.get('button[aria-haspopup="menu"]').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('[role="menuitem"]')[1]!.trigger('click')
+
+    expect(wrapper.emitted('remove')).toEqual([[project]])
   })
 })

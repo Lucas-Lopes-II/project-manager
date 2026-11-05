@@ -47,6 +47,12 @@ function toggle(): void {
   }
 }
 
+/** As in a menu button, the focus returns to the button after an option is chosen. */
+function onChoose(): void {
+  close()
+  toggleButton.value?.focus()
+}
+
 function onPointerDown(event: PointerEvent): void {
   if (!root.value?.contains(event.target as Node)) {
     close()
@@ -116,7 +122,7 @@ function onKeydown(event: KeyboardEvent): void {
       class="menu"
       role="menu"
       :aria-label="label"
-      @click="close"
+      @click="onChoose"
     >
       <slot />
     </div>
