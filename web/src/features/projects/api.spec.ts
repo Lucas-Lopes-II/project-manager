@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { request } from '@/shared/api/client'
 
-import { createProject, deleteProject, getProject, updateProject, type ProjectInput } from './api'
+import {
+  createProject,
+  deleteProject,
+  getProject,
+  listProjects,
+  setFavorite,
+  updateProject,
+  type ProjectInput,
+} from './api'
 
 vi.mock('@/shared/api/client', () => ({ request: vi.fn() }))
 
@@ -101,5 +109,31 @@ describe('deleteProject', () => {
     await deleteProject('a/b')
 
     expect(requestMock).toHaveBeenCalledWith('/projects/a%2Fb', { method: 'DELETE' })
+  })
+})
+
+describe('listProjects', () => {
+  it('asks for every project by default', async () => {
+    const signal = new AbortController().signal
+
+    await listProjects(signal)
+
+    expect(requestMock).toHaveBeenCalledWith('/projects', { signal })
+  })
+
+  it('asks the API for the favorites only', async () => {
+    await listProjects(undefined, { favoritesOnly: true })
+
+    expect(requestMock).toHaveBeenCalledWith('/projects?favorite=true', { signal: undefined })
+  })
+})
+
+describe('setFavorite', () => {
+  it('marks with PUT and unmarks with DELETE', async () => {
+    await setFavorite('a/b', true)
+    await setFavorite('a/b', false)
+
+    expect(requestMock).toHaveBeenNthCalledWith(1, '/projects/a%2Fb/favorite', { method: 'PUT' })
+    expect(requestMock).toHaveBeenNthCalledWith(2, '/projects/a%2Fb/favorite', { method: 'DELETE' })
   })
 })
