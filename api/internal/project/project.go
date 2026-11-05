@@ -54,9 +54,16 @@ type Project struct {
 	Client    string    `json:"client"`
 	StartDate Date      `json:"start_date"`
 	EndDate   Date      `json:"end_date"`
+	Favorite  bool      `json:"favorite"`
 	CoverURL  *string   `json:"cover_url"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ListFilter narrows the projects returned by a list. The total always counts
+// every registered project.
+type ListFilter struct {
+	FavoritesOnly bool
 }
 
 // Input holds the values sent by a client. The dates stay as text until

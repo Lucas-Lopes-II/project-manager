@@ -5,11 +5,13 @@ import "context"
 // Store is the persistence used by the Service.
 type Store interface {
 	Create(ctx context.Context, fields Fields) (Project, error)
-	List(ctx context.Context) ([]Project, error)
+	List(ctx context.Context, filter ListFilter) ([]Project, error)
+	Count(ctx context.Context) (int, error)
 	Get(ctx context.Context, id string) (Project, error)
 	GetCover(ctx context.Context, id string) (StoredCover, error)
 	Update(ctx context.Context, id string, fields Fields) (Project, error)
 	Delete(ctx context.Context, id string) error
+	SetFavorite(ctx context.Context, id string, favorite bool) error
 }
 
 // List is the result of listing projects.
@@ -37,13 +39,21 @@ func (s *Service) Create(ctx context.Context, input Input) (Project, error) {
 	return s.store.Create(ctx, fields)
 }
 
-// List returns every project and the total of registered projects.
-func (s *Service) List(ctx context.Context) (List, error) {
-	projects, err := s.store.List(ctx)
+// List returns the projects that match the filter and the total of registered
+// projects, which ignores the filter.
+func (s *Service) List(ctx context.Context, filter ListFilter) (List, error) {
+	projects, err := s.store.List(ctx, filter)
 	if err != nil {
 		return List{}, err
 	}
-	return List{Items: projects, Total: len(projects)}, nil
+
+	total := len(projects)
+	if filter.FavoritesOnly {
+		if total, err = s.store.Count(ctx); err != nil {
+			return List{}, err
+		}
+	}
+	return List{Items: projects, Total: total}, nil
 }
 
 // Get returns a project. A malformed ID cannot exist, so it is not found too.
@@ -80,4 +90,12 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	return s.store.Delete(ctx, id)
+}
+
+// SetFavorite marks or unmarks a project as a favorite.
+func (s *Service) SetFavorite(ctx context.Context, id string, favorite bool) error {
+	if !idPattern.MatchString(id) {
+		return ErrNotFound
+	}
+	return s.store.SetFavorite(ctx, id, favorite)
 }

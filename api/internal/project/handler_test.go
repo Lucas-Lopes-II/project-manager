@@ -26,6 +26,9 @@ type fakeStore struct {
 	cover    StoredCover
 	created  Fields
 	updated  Fields
+	filter   ListFilter
+	total    int
+	favorite *bool
 	err      error
 }
 
@@ -34,8 +37,18 @@ func (f *fakeStore) Create(_ context.Context, fields Fields) (Project, error) {
 	return f.result(fields)
 }
 
-func (f *fakeStore) List(context.Context) ([]Project, error) {
+func (f *fakeStore) List(_ context.Context, filter ListFilter) ([]Project, error) {
+	f.filter = filter
 	return f.projects, f.err
+}
+
+func (f *fakeStore) Count(context.Context) (int, error) {
+	return f.total, f.err
+}
+
+func (f *fakeStore) SetFavorite(_ context.Context, _ string, favorite bool) error {
+	f.favorite = &favorite
+	return f.err
 }
 
 func (f *fakeStore) Get(context.Context, string) (Project, error) {
