@@ -50,11 +50,16 @@ func newForm(t *testing.T, fields map[string]string, cover []byte) (*bytes.Buffe
 
 func serveForm(t *testing.T, store Store, body *bytes.Buffer, contentType string) *httptest.ResponseRecorder {
 	t.Helper()
+	return sendForm(t, store, http.MethodPost, basePath, body, contentType)
+}
+
+func sendForm(t *testing.T, store Store, method, path string, body *bytes.Buffer, contentType string) *httptest.ResponseRecorder {
+	t.Helper()
 
 	mux := http.NewServeMux()
 	NewHandler(NewService(store), slog.New(slog.DiscardHandler)).Register(mux)
 
-	req := httptest.NewRequest(http.MethodPost, basePath, body)
+	req := httptest.NewRequest(method, path, body)
 	req.Header.Set("Content-Type", contentType)
 	res := httptest.NewRecorder()
 	mux.ServeHTTP(res, req)
@@ -230,5 +235,75 @@ func TestHandler_CoverNotFound(t *testing.T) {
 				t.Errorf("detail = %q", got)
 			}
 		})
+	}
+}
+
+func TestHandler_UpdateFromAForm(t *testing.T) {
+	path := basePath + "/" + validID
+	cover := testPNG(t)
+
+	tests := []struct {
+		name        string
+		removeCover string
+		file        []byte
+		wantFile    bool
+		wantRemove  bool
+	}{
+		{name: "keeps the cover without a file"},
+		{name: "replaces the cover", file: cover, wantFile: true},
+		{name: "removes the cover", removeCover: "true", wantRemove: true},
+		{name: "ignores other values", removeCover: "1"},
+		{name: "prefers the file", removeCover: "true", file: cover, wantFile: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fields := validFormFields()
+			if tt.removeCover != "" {
+				fields["remove_cover"] = tt.removeCover
+			}
+			body, contentType := newForm(t, fields, tt.file)
+			store := &fakeStore{}
+
+			res := sendForm(t, store, http.MethodPut, path, body, contentType)
+
+			if res.Code != http.StatusOK {
+				t.Fatalf("status = %d, body: %s", res.Code, res.Body)
+			}
+			if got := store.updated.Cover != nil; got != tt.wantFile {
+				t.Errorf("has a new cover = %v, want %v", got, tt.wantFile)
+			}
+			if store.updated.RemoveCover != tt.wantRemove {
+				t.Errorf("RemoveCover = %v, want %v", store.updated.RemoveCover, tt.wantRemove)
+			}
+		})
+	}
+}
+
+func TestHandler_UpdateFromJSONKeepsTheCover(t *testing.T) {
+	store := &fakeStore{}
+	body := strings.Replace(validBody, `{`, `{"remove_cover":true,`, 1)
+
+	res, _ := serveProjects(t, store, http.MethodPut, basePath+"/"+validID, body)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d, body: %s", res.Code, res.Body)
+	}
+	if store.updated.Cover != nil || store.updated.RemoveCover {
+		t.Errorf("Fields = %+v, want the cover untouched", store.updated)
+	}
+}
+
+func TestHandler_UpdateRejectsAnInvalidCover(t *testing.T) {
+	body, contentType := newForm(t, validFormFields(), []byte("not an image"))
+
+	res := sendForm(t, &fakeStore{}, http.MethodPut, basePath+"/"+validID, body, contentType)
+
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want %d", res.Code, http.StatusUnprocessableEntity)
+	}
+	want := []httpx.FieldError{{Field: "cover", Code: CodeInvalidImage}}
+	if got := decodeProblem(t, res).Errors; !reflect.DeepEqual(got, want) {
+		t.Errorf("errors = %+v, want %+v", got, want)
 	}
 }

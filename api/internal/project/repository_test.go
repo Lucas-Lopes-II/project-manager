@@ -317,3 +317,119 @@ func TestRepository_DeleteRemovesTheCover(t *testing.T) {
 		t.Errorf("GetCover() error = %v, want ErrCoverNotFound", err)
 	}
 }
+
+// createWithCover stores a project that has a PNG cover.
+func createWithCover(t *testing.T, repo *Repository) (Project, []byte) {
+	t.Helper()
+
+	content := testPNG(t)
+	fields := newFields(t, "Projeto Iridium")
+	fields.Cover = &Cover{Content: content, ContentType: "image/png"}
+
+	created, err := repo.Create(t.Context(), fields)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	return created, content
+}
+
+func TestRepository_UpdateReplacesTheCover(t *testing.T) {
+	repo := NewRepository(emptyDatabase(t))
+	created, _ := createWithCover(t, repo)
+
+	content := testJPEG(t)
+	fields := newFields(t, "Projeto Novo")
+	fields.Cover = &Cover{Content: content, ContentType: "image/jpeg"}
+
+	updated, err := repo.Update(t.Context(), created.ID, fields)
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+	if updated.CoverURL == nil || *updated.CoverURL == *created.CoverURL {
+		t.Errorf("CoverURL = %v, want an address different from %q", updated.CoverURL, *created.CoverURL)
+	}
+
+	cover, err := repo.GetCover(t.Context(), created.ID)
+	if err != nil {
+		t.Fatalf("GetCover() error = %v", err)
+	}
+	if !bytes.Equal(cover.Content, content) || cover.ContentType != "image/jpeg" {
+		t.Errorf("GetCover() = %d bytes of %q", len(cover.Content), cover.ContentType)
+	}
+}
+
+func TestRepository_UpdateAddsACoverToAProjectWithoutOne(t *testing.T) {
+	repo := NewRepository(emptyDatabase(t))
+	created, err := repo.Create(t.Context(), newFields(t, "Projeto Iridium"))
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	fields := newFields(t, "Projeto Iridium")
+	fields.Cover = &Cover{Content: testPNG(t), ContentType: "image/png"}
+
+	updated, err := repo.Update(t.Context(), created.ID, fields)
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+	if updated.CoverURL == nil {
+		t.Error("CoverURL = nil, want the address of the new cover")
+	}
+}
+
+func TestRepository_UpdateRemovesTheCover(t *testing.T) {
+	repo := NewRepository(emptyDatabase(t))
+	created, _ := createWithCover(t, repo)
+
+	fields := newFields(t, "Projeto Iridium")
+	fields.RemoveCover = true
+
+	updated, err := repo.Update(t.Context(), created.ID, fields)
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+	if updated.CoverURL != nil {
+		t.Errorf("CoverURL = %q, want nil", *updated.CoverURL)
+	}
+	if _, err := repo.GetCover(t.Context(), created.ID); !errors.Is(err, ErrCoverNotFound) {
+		t.Errorf("GetCover() error = %v, want ErrCoverNotFound", err)
+	}
+}
+
+func TestRepository_UpdateChangesNothingWhenTheCoverFails(t *testing.T) {
+	repo := NewRepository(emptyDatabase(t))
+	created, content := createWithCover(t, repo)
+
+	fields := newFields(t, "Projeto Novo")
+	fields.Cover = &Cover{Content: []byte("image"), ContentType: "image/gif"}
+
+	if _, err := repo.Update(t.Context(), created.ID, fields); err == nil {
+		t.Fatal("Update() error = nil, want the constraint violation")
+	}
+
+	got, err := repo.Get(t.Context(), created.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if !reflect.DeepEqual(got, created) {
+		t.Errorf("Get() = %+v, want %+v", got, created)
+	}
+	cover, err := repo.GetCover(t.Context(), created.ID)
+	if err != nil {
+		t.Fatalf("GetCover() error = %v", err)
+	}
+	if !bytes.Equal(cover.Content, content) {
+		t.Error("the cover changed, want the previous one")
+	}
+}
+
+func TestRepository_UpdateWithACoverOnAnUnknownProject(t *testing.T) {
+	repo := NewRepository(emptyDatabase(t))
+
+	fields := newFields(t, "Projeto Iridium")
+	fields.Cover = &Cover{Content: testPNG(t), ContentType: "image/png"}
+
+	if _, err := repo.Update(t.Context(), unknownID, fields); !errors.Is(err, ErrNotFound) {
+		t.Errorf("Update() error = %v, want ErrNotFound", err)
+	}
+}

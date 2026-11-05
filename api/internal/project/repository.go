@@ -14,8 +14,9 @@ import (
 // The covers table only provides the update time here, so listing projects does
 // not read the images.
 const (
-	columns    = `p.id, p.name, p.client, p.start_date, p.end_date, p.created_at, p.updated_at, c.updated_at`
-	joinCovers = `LEFT JOIN project_covers c ON c.project_id = p.id`
+	columns       = `p.id, p.name, p.client, p.start_date, p.end_date, p.created_at, p.updated_at, c.updated_at`
+	joinCovers    = `LEFT JOIN project_covers c ON c.project_id = p.id`
+	selectProject = `SELECT ` + columns + ` FROM projects p ` + joinCovers + ` WHERE p.id = $1`
 )
 
 // Repository stores projects in PostgreSQL.
@@ -45,17 +46,12 @@ func (r *Repository) Create(ctx context.Context, fields Fields) (Project, error)
 		}
 
 		if fields.Cover != nil {
-			_, err := tx.Exec(ctx,
-				`INSERT INTO project_covers (project_id, content, content_type)
-				 VALUES ($1, $2, $3)`,
-				id, fields.Cover.Content, fields.Cover.ContentType,
-			)
-			if err != nil {
-				return fmt.Errorf("insert cover: %w", err)
+			if err := saveCover(ctx, tx, id, *fields.Cover); err != nil {
+				return err
 			}
 		}
 
-		project, err = scanProject(tx.QueryRow(ctx, `SELECT `+columns+` FROM projects p `+joinCovers+` WHERE p.id = $1`, id))
+		project, err = scanProject(tx.QueryRow(ctx, selectProject, id))
 		return err
 	})
 	if err != nil {
@@ -86,7 +82,7 @@ func (r *Repository) List(ctx context.Context) ([]Project, error) {
 
 // Get returns the project with the given ID or ErrNotFound.
 func (r *Repository) Get(ctx context.Context, id string) (Project, error) {
-	row := r.db.QueryRow(ctx, `SELECT `+columns+` FROM projects p `+joinCovers+` WHERE p.id = $1`, id)
+	row := r.db.QueryRow(ctx, selectProject, id)
 	return scanProject(row)
 }
 
@@ -109,19 +105,43 @@ func (r *Repository) GetCover(ctx context.Context, id string) (StoredCover, erro
 	return cover, nil
 }
 
-// Update replaces the fields of a project and returns it, or ErrNotFound.
+// Update replaces the fields of a project and changes its cover in a single
+// transaction, and returns the project or ErrNotFound.
 func (r *Repository) Update(ctx context.Context, id string, fields Fields) (Project, error) {
-	row := r.db.QueryRow(ctx,
-		`WITH p AS (
-		     UPDATE projects
-		     SET name = $2, client = $3, start_date = $4, end_date = $5, updated_at = now()
-		     WHERE id = $1
-		     RETURNING *
-		 )
-		 SELECT `+columns+` FROM p `+joinCovers,
-		id, fields.Name, fields.Client, fields.StartDate.time, fields.EndDate.time,
-	)
-	return scanProject(row)
+	var project Project
+
+	err := pgx.BeginFunc(ctx, r.db, func(tx pgx.Tx) error {
+		result, err := tx.Exec(ctx,
+			`UPDATE projects
+			 SET name = $2, client = $3, start_date = $4, end_date = $5, updated_at = now()
+			 WHERE id = $1`,
+			id, fields.Name, fields.Client, fields.StartDate.time, fields.EndDate.time,
+		)
+		if err != nil {
+			return fmt.Errorf("update project: %w", err)
+		}
+		if result.RowsAffected() == 0 {
+			return ErrNotFound
+		}
+
+		switch {
+		case fields.Cover != nil:
+			if err := saveCover(ctx, tx, id, *fields.Cover); err != nil {
+				return err
+			}
+		case fields.RemoveCover:
+			if _, err := tx.Exec(ctx, `DELETE FROM project_covers WHERE project_id = $1`, id); err != nil {
+				return fmt.Errorf("delete cover: %w", err)
+			}
+		}
+
+		project, err = scanProject(tx.QueryRow(ctx, selectProject, id))
+		return err
+	})
+	if err != nil {
+		return Project{}, fmt.Errorf("update project: %w", err)
+	}
+	return project, nil
 }
 
 // Delete removes a project or returns ErrNotFound.
@@ -132,6 +152,21 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 	}
 	if result.RowsAffected() == 0 {
 		return ErrNotFound
+	}
+	return nil
+}
+
+// saveCover stores the cover of a project, replacing the current one.
+func saveCover(ctx context.Context, tx pgx.Tx, id string, cover Cover) error {
+	_, err := tx.Exec(ctx,
+		`INSERT INTO project_covers (project_id, content, content_type)
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (project_id) DO UPDATE
+		 SET content = EXCLUDED.content, content_type = EXCLUDED.content_type, updated_at = now()`,
+		id, cover.Content, cover.ContentType,
+	)
+	if err != nil {
+		return fmt.Errorf("save cover: %w", err)
 	}
 	return nil
 }

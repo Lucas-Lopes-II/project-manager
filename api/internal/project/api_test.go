@@ -114,6 +114,31 @@ func TestAPI_ProjectLifecycle(t *testing.T) {
 	}
 }
 
+// sendToServer sends a form and decodes the JSON response into a map.
+func sendToServer(t *testing.T, server *httptest.Server, method, path string, body io.Reader, contentType string) map[string]any {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(t.Context(), method, server.URL+path, body)
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	req.Header.Set("Content-Type", contentType)
+	res, err := server.Client().Do(req)
+	if err != nil {
+		t.Fatalf("send request: %v", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("%s %s: status = %d", method, path, res.StatusCode)
+	}
+
+	var decoded map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&decoded); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	return decoded
+}
+
 func TestAPI_ProjectWithCover(t *testing.T) {
 	pool := emptyDatabase(t)
 
@@ -160,7 +185,45 @@ func TestAPI_ProjectWithCover(t *testing.T) {
 		t.Errorf("Content-Type = %q", got)
 	}
 
-	status, _, _ := call(t, server, http.MethodDelete, basePath+"/"+created.ID, "")
+	// A JSON update keeps the cover.
+	status, _, updated := call(t, server, http.MethodPut, basePath+"/"+created.ID, validBody)
+	if status != http.StatusOK || updated["cover_url"] != *created.CoverURL {
+		t.Errorf("JSON update: status = %d, cover_url = %v, want %q", status, updated["cover_url"], *created.CoverURL)
+	}
+
+	// A form replaces the cover and changes its address.
+	replacement := testJPEG(t)
+	body, contentType = newForm(t, validFormFields(), replacement)
+	replaced := sendToServer(t, server, http.MethodPut, basePath+"/"+created.ID, body, contentType)
+	if replaced["cover_url"] == nil || replaced["cover_url"] == *created.CoverURL {
+		t.Errorf("replaced cover_url = %v, want a new address", replaced["cover_url"])
+	}
+	stale, err := server.Client().Get(server.URL + *created.CoverURL)
+	if err != nil {
+		t.Fatalf("get old address: %v", err)
+	}
+	defer stale.Body.Close()
+	if got := stale.Header.Get("Cache-Control"); got != "no-cache" {
+		t.Errorf("Cache-Control of the old address = %q, want no-cache", got)
+	}
+	if got := stale.Header.Get("Content-Type"); got != "image/jpeg" {
+		t.Errorf("Content-Type of the old address = %q, want the new image", got)
+	}
+
+	// A form can also remove the cover.
+	fields := validFormFields()
+	fields["remove_cover"] = "true"
+	body, contentType = newForm(t, fields, nil)
+	removed := sendToServer(t, server, http.MethodPut, basePath+"/"+created.ID, body, contentType)
+	if removed["cover_url"] != nil {
+		t.Errorf("removed cover_url = %v, want null", removed["cover_url"])
+	}
+	status, _, _ = call(t, server, http.MethodGet, coverPath(created.ID), "")
+	if status != http.StatusNotFound {
+		t.Errorf("cover after removal: status = %d, want 404", status)
+	}
+
+	status, _, _ = call(t, server, http.MethodDelete, basePath+"/"+created.ID, "")
 	if status != http.StatusNoContent {
 		t.Fatalf("delete: status = %d", status)
 	}

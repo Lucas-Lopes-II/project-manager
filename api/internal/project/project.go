@@ -63,21 +63,24 @@ type Project struct {
 // Validate, so an invalid date becomes a field error instead of a decode error.
 // Cover stays out of the JSON format, and nil means that no file was sent.
 type Input struct {
-	Name      string `json:"name"`
-	Client    string `json:"client"`
-	StartDate string `json:"start_date"`
-	EndDate   string `json:"end_date"`
-	Cover     []byte `json:"-"`
+	Name        string `json:"name"`
+	Client      string `json:"client"`
+	StartDate   string `json:"start_date"`
+	EndDate     string `json:"end_date"`
+	Cover       []byte `json:"-"`
+	RemoveCover bool   `json:"-"`
 }
 
-// Fields holds validated values, ready to be stored. Cover is nil when the
-// project has no new cover.
+// Fields holds validated values, ready to be stored. Cover is nil when there is
+// no new cover. RemoveCover only applies when there is none, and otherwise the
+// current cover stays.
 type Fields struct {
-	Name      string
-	Client    string
-	StartDate Date
-	EndDate   Date
-	Cover     *Cover
+	Name        string
+	Client      string
+	StartDate   Date
+	EndDate     Date
+	Cover       *Cover
+	RemoveCover bool
 }
 
 // Cover is a validated image.
@@ -142,6 +145,7 @@ func (in Input) Validate() (Fields, error) {
 	if coverErr != nil {
 		errs = append(errs, *coverErr)
 	}
+	fields.RemoveCover = in.RemoveCover && in.Cover == nil
 
 	if len(errs) > 0 {
 		return Fields{}, &ValidationError{Errors: errs}
