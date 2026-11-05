@@ -60,5 +60,11 @@ withDefaults(
   border: 1px solid var(--color-primary);
   background: var(--color-surface);
   color: var(--color-primary);
+
+  &:disabled {
+    border-color: var(--color-primary-disabled);
+    color: var(--color-primary-disabled);
+    cursor: not-allowed;
+  }
 }
 </style>

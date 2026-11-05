@@ -9,7 +9,7 @@ defineProps<{
 
 <template>
   <div class="card" :class="{ delayed }">
-    <h1 v-if="title" class="title">{{ title }}</h1>
+    <h1 v-if="title" class="title" tabindex="-1">{{ title }}</h1>
     <p v-if="text" class="text">{{ text }}</p>
     <slot />
   </div>

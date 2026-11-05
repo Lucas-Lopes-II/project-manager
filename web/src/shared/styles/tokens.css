@@ -14,6 +14,7 @@
   --color-border: #717171;
   --color-border-card: #dcdcdc;
   --color-divider: #ececec;
+  --color-divider-strong: #8c8b93;
   --color-toggle-off: #53525d;
   --color-error: #c40000;
   --color-error-label: #9f0000;
@@ -30,6 +31,7 @@
   --font-size-count: 1.0625rem; /* 17px */
   --font-size-lg: 1.125rem; /* 18px */
   --font-size-xl: 1.25rem; /* 20px */
+  --font-size-dialog-title: 1.375rem; /* 22px */
   --font-size-2xl: 1.5rem; /* 24px */
 
   /* Espaçamento */

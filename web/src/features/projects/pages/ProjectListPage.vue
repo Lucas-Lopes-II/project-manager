@@ -1,62 +1,91 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import MessageCard from '@/shared/ui/MessageCard.vue'
 
+import type { Project } from '../api'
 import ProjectCard from '../components/ProjectCard.vue'
+import RemoveProjectDialog from '../components/RemoveProjectDialog.vue'
 import { useProjectsStore } from '../store'
 
 const projects = useProjectsStore()
+
+const page = useTemplateRef('page')
+const toRemove = ref<Project | null>(null)
+
+// The page moves the focus itself: with a real click, the dialog opens before the menu returns
+// the focus to its button, so the browser would return it to an option that no longer exists.
+async function closeDialog(focusTarget: (id: string) => string): Promise<void> {
+  const id = toRemove.value?.id
+  toRemove.value = null
+  await nextTick()
+  if (id) {
+    page.value?.querySelector<HTMLElement>(focusTarget(id))?.focus()
+  }
+}
+
+function onCancel(): Promise<void> {
+  return closeDialog((id) => `[data-project-id="${id}"] button[aria-haspopup="menu"]`)
+}
+
+/** The removed card took its button with it, so the focus goes to the title of the list. */
+function onRemoved(): Promise<void> {
+  return closeDialog(() => 'h1')
+}
 
 onMounted(() => projects.load())
 onBeforeUnmount(() => projects.cancel())
 </script>
 
 <template>
-  <!-- The live region stays in the page, so that screen readers announce what appears inside it. -->
-  <div role="status">
-    <MessageCard v-if="projects.status === 'loading'" delayed text="Carregando projetos..." />
-  </div>
+  <div ref="page">
+    <!-- The live region stays in the page, so that screen readers announce what appears inside it. -->
+    <div role="status">
+      <MessageCard v-if="projects.status === 'loading'" delayed text="Carregando projetos..." />
+    </div>
 
-  <MessageCard
-    v-if="projects.status === 'error'"
-    role="alert"
-    title="Não foi possível carregar os projetos."
-  >
-    <BaseButton @click="projects.load()">Tentar novamente</BaseButton>
-  </MessageCard>
+    <MessageCard
+      v-if="projects.status === 'error'"
+      role="alert"
+      title="Não foi possível carregar os projetos."
+    >
+      <BaseButton @click="projects.load()">Tentar novamente</BaseButton>
+    </MessageCard>
 
-  <template v-else-if="projects.status === 'ready'">
-    <template v-if="projects.total > 0">
-      <div class="toolbar">
-        <h1 class="title">
-          Projetos <span class="count">({{ projects.total }})</span>
-        </h1>
-        <BaseButton class="new-project" size="small" :to="{ name: 'project-new' }">
+    <template v-else-if="projects.status === 'ready'">
+      <template v-if="projects.total > 0">
+        <div class="toolbar">
+          <h1 class="title" tabindex="-1">
+            Projetos <span class="count">({{ projects.total }})</span>
+          </h1>
+          <BaseButton class="new-project" size="small" :to="{ name: 'project-new' }">
+            <img src="@/shared/assets/icons/plus-circle.svg" alt="" width="24" height="24" />
+            Novo projeto
+          </BaseButton>
+        </div>
+
+        <ul class="grid">
+          <li v-for="project in projects.items" :key="project.id" class="item">
+            <ProjectCard :project="project" @remove="toRemove = $event" />
+          </li>
+        </ul>
+      </template>
+
+      <MessageCard
+        v-else
+        title="Nenhum projeto"
+        text="Clique no botão abaixo para criar o primeiro e gerenciá-lo."
+      >
+        <BaseButton :to="{ name: 'project-new' }">
           <img src="@/shared/assets/icons/plus-circle.svg" alt="" width="24" height="24" />
           Novo projeto
         </BaseButton>
-      </div>
-
-      <ul class="grid">
-        <li v-for="project in projects.items" :key="project.id" class="item">
-          <ProjectCard :project="project" />
-        </li>
-      </ul>
+      </MessageCard>
     </template>
 
-    <MessageCard
-      v-else
-      title="Nenhum projeto"
-      text="Clique no botão abaixo para criar o primeiro e gerenciá-lo."
-    >
-      <BaseButton :to="{ name: 'project-new' }">
-        <img src="@/shared/assets/icons/plus-circle.svg" alt="" width="24" height="24" />
-        Novo projeto
-      </BaseButton>
-    </MessageCard>
-  </template>
+    <RemoveProjectDialog :project="toRemove" @cancel="onCancel" @removed="onRemoved" />
+  </div>
 </template>
 
 <style scoped>

@@ -92,13 +92,14 @@ describe('ActionMenu', () => {
     expect(wrapper.find('[role="menu"]').exists()).toBe(false)
   })
 
-  it('closes after choosing an option', async () => {
+  it('closes after choosing an option and returns the focus to the button', async () => {
     const wrapper = mountMenu()
     await openMenu(wrapper)
 
     await wrapper.get('[role="menuitem"]').trigger('click')
 
     expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(wrapper.get('button').element)
   })
 
   it('moves between the options with the keyboard', async () => {

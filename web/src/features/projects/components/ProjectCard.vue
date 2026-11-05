@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import calendarCheckIcon from '@/shared/assets/icons/calendar-check.svg'
 import calendarDayIcon from '@/shared/assets/icons/calendar-day.svg'
 import editIcon from '@/shared/assets/icons/edit.svg'
+import trashIcon from '@/shared/assets/icons/trash-menu.svg'
 import placeholder from '@/shared/assets/project-placeholder.svg'
 import ActionMenu from '@/shared/ui/ActionMenu.vue'
 import ActionMenuItem from '@/shared/ui/ActionMenuItem.vue'
@@ -13,6 +14,8 @@ import { formatDate } from '../formatDate'
 
 const props = defineProps<{ project: Project }>()
 
+defineEmits<{ remove: [project: Project] }>()
+
 const dates = computed(() => [
   { label: 'Início', value: props.project.start_date, icon: calendarDayIcon },
   { label: 'Prazo', value: props.project.end_date, icon: calendarCheckIcon },
@@ -20,13 +23,14 @@ const dates = computed(() => [
 </script>
 
 <template>
-  <article class="card">
+  <article class="card" :data-project-id="project.id">
     <div class="media">
       <img class="cover" :src="project.cover_url ?? placeholder" alt="" loading="lazy" />
       <ActionMenu class="actions" :label="`Ações do projeto ${project.name}`">
         <ActionMenuItem :to="{ name: 'project-edit', params: { id: project.id } }" :icon="editIcon">
           Editar
         </ActionMenuItem>
+        <ActionMenuItem :icon="trashIcon" @click="$emit('remove', project)">Remover</ActionMenuItem>
       </ActionMenu>
     </div>
 
