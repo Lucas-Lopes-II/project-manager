@@ -218,7 +218,7 @@ describe('filters', () => {
 
     await store.load({ favoritesOnly: true })
 
-    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true })
+    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true, sort: 'name' })
     expect(store.favoritesOnly).toBe(true)
     expect(store.total).toBe(3)
   })
@@ -238,6 +238,16 @@ describe('filters', () => {
     answer.resolve({ items: [], total: 1 })
     await loading
     expect(store.items).toEqual([])
+  })
+
+  it('asks the API for an order', async () => {
+    listProjectsMock.mockResolvedValue({ items: [], total: 0 })
+    const store = useProjectsStore()
+
+    await store.load({ sort: 'deadline' })
+
+    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: false, sort: 'deadline' })
+    expect(store.sort).toBe('deadline')
   })
 
   it('shows the loading state when there is no list to keep', async () => {

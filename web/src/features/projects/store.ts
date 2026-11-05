@@ -4,12 +4,13 @@ import type { LocationQuery } from 'vue-router'
 
 import { ApiError } from '@/shared/api/client'
 
-import { deleteProject, listProjects, setFavorite, type Project } from './api'
+import { deleteProject, listProjects, setFavorite, type Project, type ProjectSort } from './api'
 
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export interface LoadOptions {
   favoritesOnly?: boolean
+  sort?: ProjectSort
   /** Keeps the current list on screen until the answer arrives, so it does not flicker. */
   keepItems?: boolean
 }
@@ -19,6 +20,7 @@ export const useProjectsStore = defineStore('projects', () => {
   const total = ref(0)
   const status = ref<LoadStatus>('idle')
   const favoritesOnly = ref(false)
+  const sort = ref<ProjectSort>('name')
 
   /** The query of the list, so that the forms return to the same filters. */
   const listQuery = ref<LocationQuery>({})
@@ -31,12 +33,16 @@ export const useProjectsStore = defineStore('projects', () => {
     const current = new AbortController()
     controller = current
     favoritesOnly.value = options.favoritesOnly ?? false
+    sort.value = options.sort ?? 'name'
     if (!(options.keepItems && status.value === 'ready')) {
       status.value = 'loading'
     }
 
     try {
-      const list = await listProjects(current.signal, { favoritesOnly: favoritesOnly.value })
+      const list = await listProjects(current.signal, {
+        favoritesOnly: favoritesOnly.value,
+        sort: sort.value,
+      })
       if (current !== controller) return
 
       items.value = list.items
@@ -128,6 +134,7 @@ export const useProjectsStore = defineStore('projects', () => {
     total,
     status,
     favoritesOnly,
+    sort,
     listQuery,
     load,
     cancel,

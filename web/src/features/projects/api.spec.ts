@@ -126,6 +126,18 @@ describe('listProjects', () => {
 
     expect(requestMock).toHaveBeenCalledWith('/projects?favorite=true', { signal: undefined })
   })
+
+  it('asks for an order, leaving the default one out', async () => {
+    await listProjects(undefined, { sort: 'name' })
+    await listProjects(undefined, { sort: 'deadline' })
+    await listProjects(undefined, { favoritesOnly: true, sort: 'recent' })
+
+    expect(requestMock.mock.calls.map(([path]) => path)).toEqual([
+      '/projects',
+      '/projects?sort=deadline',
+      '/projects?favorite=true&sort=recent',
+    ])
+  })
 })
 
 describe('setFavorite', () => {
