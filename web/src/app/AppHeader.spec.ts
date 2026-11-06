@@ -1,5 +1,8 @@
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { SEARCH_HISTORY_KEY } from '@/features/projects/searchHistory'
 
 import AppHeader from './AppHeader.vue'
 import router from './router'
@@ -7,7 +10,18 @@ import router from './router'
 enableAutoUnmount(afterEach)
 
 function mountHeader() {
-  return mount(AppHeader, { attachTo: document.body, global: { plugins: [router] } })
+  return mount(AppHeader, {
+    attachTo: document.body,
+    global: { plugins: [createPinia(), router] },
+  })
+}
+
+function storeHistory(terms: string[]) {
+  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(terms))
+}
+
+function historyTerms(wrapper: ReturnType<typeof mountHeader>) {
+  return wrapper.findAll('.history-term').map((button) => button.text())
 }
 
 async function openBar(wrapper: ReturnType<typeof mountHeader>) {
@@ -23,6 +37,7 @@ async function type(input: ReturnType<ReturnType<typeof mountHeader>['get']>, te
 
 beforeEach(async () => {
   vi.useFakeTimers()
+  localStorage.clear()
   await router.replace('/')
 })
 
@@ -160,5 +175,134 @@ describe('AppHeader', () => {
 
     expect(wrapper.find('form').exists()).toBe(false)
     expect(wrapper.find('img[alt="Gerenciador de Projetos"]').exists()).toBe(true)
+  })
+
+  describe('search history', () => {
+    it('shows the last searches under the empty bar, and hides them while typing', async () => {
+      storeHistory(['projeto', 'alfa'])
+      const wrapper = mountHeader()
+      const input = await openBar(wrapper)
+
+      const list = wrapper.get('ul')
+      expect(list.attributes('aria-label')).toBe('Buscas recentes')
+      expect(historyTerms(wrapper)).toEqual(['projeto', 'alfa'])
+      expect(
+        wrapper.findAll('.history-remove').map((button) => button.attributes('aria-label')),
+      ).toEqual(['Remover projeto do histórico', 'Remover alfa do histórico'])
+
+      await type(input, 'p')
+      expect(wrapper.find('ul').exists()).toBe(false)
+
+      await type(input, '')
+      expect(wrapper.find('ul').exists()).toBe(true)
+    })
+
+    it('shows nothing without previous searches', async () => {
+      const wrapper = mountHeader()
+      await openBar(wrapper)
+
+      expect(wrapper.find('ul').exists()).toBe(false)
+    })
+
+    it('shows the history only while the bar has the focus', async () => {
+      storeHistory(['projeto'])
+      await router.push('/busca?q=proj')
+      const wrapper = mountHeader()
+      await flushPromises()
+      const input = wrapper.get('input[type="search"]')
+      await type(input, '')
+      expect(wrapper.find('ul').exists()).toBe(false)
+
+      ;(input.element as HTMLInputElement).focus()
+      await flushPromises()
+      expect(wrapper.find('ul').exists()).toBe(true)
+
+      await wrapper.get('form').trigger('focusout', { relatedTarget: null })
+      expect(wrapper.find('ul').exists()).toBe(false)
+      expect(wrapper.find('form').exists()).toBe(true)
+    })
+
+    it('searches a chosen term and keeps the focus in the field', async () => {
+      storeHistory(['projeto', 'alfa'])
+      const wrapper = mountHeader()
+      const input = await openBar(wrapper)
+      const push = vi.spyOn(router, 'push')
+
+      const term = wrapper.findAll('.history-term')[1]!
+      ;(term.element as HTMLButtonElement).focus()
+      await term.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'project-search', query: { q: 'alfa' } })
+      expect((input.element as HTMLInputElement).value).toBe('alfa')
+      expect(document.activeElement).toBe(input.element)
+      expect(wrapper.find('ul').exists()).toBe(false)
+    })
+
+    it('removes a term without searching or closing the bar', async () => {
+      storeHistory(['projeto', 'alfa'])
+      const wrapper = mountHeader()
+      const input = await openBar(wrapper)
+      const push = vi.spyOn(router, 'push')
+
+      await wrapper.findAll('.history-remove')[0]!.trigger('click')
+
+      expect(historyTerms(wrapper)).toEqual(['alfa'])
+      expect(JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY)!)).toEqual(['alfa'])
+      expect(document.activeElement).toBe(input.element)
+      expect(push).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1000)
+      expect(push).not.toHaveBeenCalled()
+    })
+
+    it('moves the focus of a removed term to the next one, or to the field at the end', async () => {
+      storeHistory(['alfa', 'beta', 'gama'])
+      const wrapper = mountHeader()
+      const input = await openBar(wrapper)
+
+      async function removeWithKeyboard(index: number) {
+        const button = wrapper.findAll('.history-remove')[index]!
+        ;(button.element as HTMLButtonElement).focus()
+        await button.trigger('click')
+      }
+
+      await removeWithKeyboard(1)
+      expect(document.activeElement?.textContent).toBe('gama')
+
+      await removeWithKeyboard(1)
+      expect(document.activeElement?.textContent).toBe('alfa')
+
+      await removeWithKeyboard(0)
+      expect(document.activeElement).toBe(input.element)
+      expect(wrapper.find('ul').exists()).toBe(false)
+      expect(wrapper.find('form').exists()).toBe(true)
+    })
+
+    it('keeps the focus on another term when a click removes an item', async () => {
+      storeHistory(['alfa', 'beta'])
+      const wrapper = mountHeader()
+      await openBar(wrapper)
+
+      const first = wrapper.findAll('.history-term')[0]!.element as HTMLButtonElement
+      first.focus()
+      await wrapper.findAll('.history-remove')[1]!.trigger('click')
+
+      expect(document.activeElement).toBe(first)
+    })
+
+    it('closes the empty bar with Escape from the history', async () => {
+      storeHistory(['projeto'])
+      const wrapper = mountHeader()
+      await openBar(wrapper)
+
+      const term = wrapper.get('.history-term')
+      ;(term.element as HTMLButtonElement).focus()
+      await term.trigger('keydown', { key: 'Escape' })
+      await flushPromises()
+
+      expect(wrapper.find('form').exists()).toBe(false)
+      expect(document.activeElement).toBe(
+        wrapper.get('button[aria-label="Buscar projetos"]').element,
+      )
+    })
   })
 })
