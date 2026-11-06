@@ -33,6 +33,8 @@ export type ProjectSort = 'name' | 'recent' | 'deadline'
 export interface ListFilter {
   favoritesOnly?: boolean
   sort?: ProjectSort
+  /** Keeps the projects whose name contains it, ignoring case and accents (ADR-0032). */
+  query?: string
 }
 
 /** The total of the answer always counts every registered project, whatever the filter. */
@@ -43,6 +45,9 @@ export function listProjects(signal?: AbortSignal, filter: ListFilter = {}): Pro
   }
   if (filter.sort && filter.sort !== 'name') {
     params.set('sort', filter.sort)
+  }
+  if (filter.query) {
+    params.set('q', filter.query)
   }
 
   const query = params.toString()

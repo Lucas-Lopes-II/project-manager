@@ -218,7 +218,11 @@ describe('filters', () => {
 
     await store.load({ favoritesOnly: true })
 
-    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true, sort: 'name' })
+    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({
+      favoritesOnly: true,
+      sort: 'name',
+      query: '',
+    })
     expect(store.favoritesOnly).toBe(true)
     expect(store.total).toBe(3)
   })
@@ -246,8 +250,26 @@ describe('filters', () => {
 
     await store.load({ sort: 'deadline' })
 
-    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: false, sort: 'deadline' })
+    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({
+      favoritesOnly: false,
+      sort: 'deadline',
+      query: '',
+    })
     expect(store.sort).toBe('deadline')
+  })
+
+  it('asks the API for a term', async () => {
+    listProjectsMock.mockResolvedValue({ items: [], total: 0 })
+    const store = useProjectsStore()
+
+    await store.load({ query: 'proj' })
+
+    expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({
+      favoritesOnly: false,
+      sort: 'name',
+      query: 'proj',
+    })
+    expect(store.query).toBe('proj')
   })
 
   it('shows the loading state when there is no list to keep', async () => {
