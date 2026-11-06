@@ -37,6 +37,7 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0029](0029-ordem-por-prazo-com-vencidos-no-fim.md) | Ordem por prazo, com os vencidos no fim | Accepted | F10 |
 | [0030](0030-select-proprio-acessivel.md) | Select próprio e acessível | Accepted | F10 |
 | [0031](0031-publicacao-com-espera-no-lugar-do-erro.md) | Publicação com espera no lugar do erro | Accepted | F10 |
+| [0032](0032-busca-por-nome.md) | Busca por nome no banco, enquanto a pessoa digita | Accepted | F11 |
 
 ## Modelo
 
