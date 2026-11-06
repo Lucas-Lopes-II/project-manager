@@ -21,6 +21,15 @@ jobs:
       - name: Start services
         run: docker compose up -d --wait --build
 
+      - name: Load the demo data twice
+        run: |
+          scripts/seed-demo.sh
+          scripts/seed-demo.sh
+          curl -sS http://localhost:8080/api/v1/projects | jq -e '
+            .total == 8
+            and ([.items[] | select(.favorite)] | length) == 2
+            and ([.items[] | select(.cover_url != null)] | length) == 3'
+
       - name: Validate production file
         run: DOMAIN=example.test docker compose -f compose.prod.yaml config --quiet
 
