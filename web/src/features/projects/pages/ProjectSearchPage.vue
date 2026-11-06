@@ -8,9 +8,11 @@ import MessageCard from '@/shared/ui/MessageCard.vue'
 import BackHeading from '../components/BackHeading.vue'
 import ProjectCards from '../components/ProjectCards.vue'
 import { MIN_SEARCH_LENGTH, searchTerm } from '../search'
+import { useSearchHistoryStore } from '../searchHistory'
 import { useProjectsStore } from '../store'
 
 const projects = useProjectsStore()
+const searchHistory = useSearchHistoryStore()
 const route = useRoute()
 
 const term = computed(() => searchTerm(route.query.q))
@@ -22,6 +24,7 @@ function load(keepItems = false): void {
     projects.cancel()
     return
   }
+  searchHistory.record(term.value)
   void projects.load({ query: term.value, keepItems })
 }
 

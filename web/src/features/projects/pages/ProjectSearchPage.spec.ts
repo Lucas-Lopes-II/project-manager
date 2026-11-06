@@ -6,6 +6,7 @@ import router from '@/app/router'
 import { ApiError } from '@/shared/api/client'
 
 import { listProjects, type Project } from '../api'
+import { useSearchHistoryStore } from '../searchHistory'
 import { useProjectsStore } from '../store'
 import ProjectSearchPage from './ProjectSearchPage.vue'
 
@@ -40,6 +41,7 @@ async function mountPage(path: string) {
 
 beforeEach(() => {
   listProjectsMock.mockReset()
+  localStorage.clear()
   document.body.innerHTML = ''
 })
 
@@ -104,6 +106,19 @@ describe('ProjectSearchPage', () => {
 
     expect(listProjectsMock.mock.calls[1]?.[1]).toMatchObject({ query: 'projeto' })
     expect(wrapper.findAll('article')).toHaveLength(1)
+  })
+
+  it('records each search that runs in the history', async () => {
+    listProjectsMock.mockResolvedValue({ items: [], total: 0 })
+    await mountPage('/busca?q=alfa')
+    const history = useSearchHistoryStore()
+
+    for (const q of ['pr', 'proj', 'projeto']) {
+      await router.replace({ name: 'project-search', query: { q } })
+      await flushPromises()
+    }
+
+    expect(history.terms).toEqual(['projeto', 'alfa'])
   })
 
   it('reports a failure and tries again', async () => {
