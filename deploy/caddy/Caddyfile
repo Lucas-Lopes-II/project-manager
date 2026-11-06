@@ -6,6 +6,9 @@
 }
 
 {$DOMAIN} {
+	# Browsers only use HTTPS for this site from the first visit on (ADR-0035).
+	header Strict-Transport-Security "max-age=31536000"
+
 	reverse_proxy web:8080 {
 		# While the web container is replaced, wait for it instead of answering 502 (ADR-0031).
 		lb_try_duration 10s

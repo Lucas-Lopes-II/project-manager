@@ -90,6 +90,29 @@ describe('ProjectCreatePage', () => {
     await expectListRoute()
   })
 
+  it('explains when the limit of projects is reached', async () => {
+    createProjectMock.mockRejectedValue(
+      new ApiError(409, 'O limite de 200 projetos foi atingido.', [], 'abc', 'project_limit'),
+    )
+    const wrapper = await mountFilled()
+
+    await save(wrapper)
+
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      'Limite de 200 projetos atingido. Remova um projeto para criar outro.',
+    )
+    expect(router.currentRoute.value.name).toBe('project-new')
+  })
+
+  it('treats too many requests as any other failure', async () => {
+    createProjectMock.mockRejectedValue(new ApiError(429, 'Muitas requisições.'))
+    const wrapper = await mountFilled()
+
+    await save(wrapper)
+
+    expect(wrapper.get('[role="alert"]').text()).toBe(FAILURE)
+  })
+
   it('also reports a connection failure', async () => {
     createProjectMock.mockRejectedValue(new ApiError(0, 'Não foi possível conectar à API.'))
     const wrapper = await mountFilled()

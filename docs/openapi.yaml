@@ -57,12 +57,14 @@ paths:
                 $ref: "#/components/schemas/ProjectList"
         "400":
           $ref: "#/components/responses/InvalidFilter"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
     post:
       operationId: createProject
       summary: Cria um projeto
-      description: Aceita JSON, sem capa, ou `multipart/form-data`, com capa opcional. O projeto e a capa são gravados juntos.
+      description: Aceita JSON, sem capa, ou `multipart/form-data`, com capa opcional. O projeto e a capa são gravados juntos. A API aceita até 200 projetos.
       tags: [Projetos]
       requestBody:
         $ref: "#/components/requestBodies/ProjectCreate"
@@ -81,10 +83,14 @@ paths:
                 $ref: "#/components/schemas/Project"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/ProjectLimit"
         "413":
           $ref: "#/components/responses/ContentTooLarge"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -110,6 +116,8 @@ paths:
                 $ref: "#/components/schemas/Project"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
     put:
@@ -134,6 +142,8 @@ paths:
           $ref: "#/components/responses/ContentTooLarge"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
     delete:
@@ -145,6 +155,8 @@ paths:
           description: Projeto removido.
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -181,6 +193,8 @@ paths:
                 format: binary
         "404":
           $ref: "#/components/responses/CoverNotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -202,6 +216,8 @@ paths:
           description: O projeto é favorito.
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
     delete:
@@ -214,6 +230,8 @@ paths:
           description: O projeto não é favorito.
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -341,6 +359,33 @@ components:
                 code: invalid_date_range
               - field: end_date
                 code: invalid_date_range
+    ProjectLimit:
+      description: O limite de 200 projetos foi atingido.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: about:blank
+            title: Conflict
+            status: 409
+            detail: O limite de 200 projetos foi atingido.
+            code: project_limit
+            request_id: FHGJTHJDNHP2NJACCDEGN7JBZN
+    TooManyRequests:
+      description: |
+        O endereço de origem passou do limite de requisições. Na produção, o proxy responde antes da API:
+        10 leituras por segundo, com picos de até 100, e 30 escritas por minuto, com picos de até 20.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: about:blank
+            title: Too Many Requests
+            status: 429
+            detail: Muitas requisições. Aguarde alguns segundos e tente novamente.
+            request_id: 5f1c2a7e9b3d4c6e8a0b1c2d3e4f5a6b
     InternalError:
       description: Erro inesperado, sem detalhes internos.
       content:
@@ -449,6 +494,12 @@ components:
         detail:
           type: string
           example: Projeto não encontrado.
+        code:
+          type: string
+          description: |
+            Erro que não se refere a um campo, presente só nesses casos.
+            - `project_limit`: o limite de 200 projetos foi atingido.
+          enum: [project_limit]
         request_id:
           type: string
           description: Identificador da requisição, também presente nos logs.

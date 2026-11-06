@@ -10,6 +10,8 @@ navegador -> Caddy (HTTPS) -> nginx (front-end e /api) -> API -> PostgreSQL
 
 Só o Caddy publica portas. O banco e a API ficam na rede interna do Compose.
 
+O nginx limita as requisições de cada IP que chegam pelo Caddy, e a API aceita até 200 projetos, o que limita o disco ocupado pelas capas ([ADR-0035](adrs/0035-protecao-contra-abuso.md)).
+
 ```text
 merge na main -> CI verde -> imagens no GitHub Container Registry -> VM busca as imagens novas
 ```

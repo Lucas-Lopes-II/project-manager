@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -122,6 +123,24 @@ func TestHandler_Create(t *testing.T) {
 	}
 	if body["start_date"] != "2026-11-04" || body["end_date"] != "2026-12-12" {
 		t.Errorf("dates in the body = %v, %v", body["start_date"], body["end_date"])
+	}
+}
+
+func TestHandler_CreateAboveTheLimit(t *testing.T) {
+	res, logs := serveProjects(t, &fakeStore{err: fmt.Errorf("create project: %w", ErrProjectLimit)}, http.MethodPost, basePath, validBody)
+
+	if res.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d, body: %s", res.Code, http.StatusConflict, res.Body)
+	}
+	problem := decodeProblem(t, res)
+	if problem.Code != CodeProjectLimit {
+		t.Errorf("code = %q, want %q", problem.Code, CodeProjectLimit)
+	}
+	if problem.Detail != "O limite de 200 projetos foi atingido." || len(problem.Errors) != 0 {
+		t.Errorf("problem = %+v", problem)
+	}
+	if logs.Len() != 0 {
+		t.Errorf("an expected limit must not be logged as an error: %s", logs)
 	}
 }
 

@@ -2,6 +2,7 @@ package project
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -167,6 +168,10 @@ func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) 
 
 	case errors.Is(err, ErrCoverNotFound):
 		httpx.WriteProblem(w, r, http.StatusNotFound, "Capa não encontrada.")
+
+	case errors.Is(err, ErrProjectLimit):
+		detail := fmt.Sprintf("O limite de %d projetos foi atingido.", MaxProjects)
+		httpx.WriteCodedProblem(w, r, http.StatusConflict, CodeProjectLimit, detail)
 
 	default:
 		h.log.ErrorContext(r.Context(), "project request failed", "request_id", httpx.RequestID(r.Context()), "error", err)

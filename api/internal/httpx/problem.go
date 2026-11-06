@@ -13,6 +13,7 @@ type Problem struct {
 	Title     string       `json:"title"`
 	Status    int          `json:"status"`
 	Detail    string       `json:"detail,omitempty"`
+	Code      string       `json:"code,omitempty"`
 	RequestID string       `json:"request_id,omitempty"`
 	Errors    []FieldError `json:"errors,omitempty"`
 }
@@ -33,6 +34,19 @@ func WriteProblem(w http.ResponseWriter, r *http.Request, status int, detail str
 		Detail:    detail,
 		RequestID: RequestID(r.Context()),
 		Errors:    fieldErrors,
+	})
+}
+
+// WriteCodedProblem writes an error response that is not about a single field.
+// The client turns code into the text shown to the user.
+func WriteCodedProblem(w http.ResponseWriter, r *http.Request, status int, code, detail string) {
+	write(w, r, "application/problem+json", status, Problem{
+		Type:      "about:blank",
+		Title:     http.StatusText(status),
+		Status:    status,
+		Detail:    detail,
+		Code:      code,
+		RequestID: RequestID(r.Context()),
 	})
 }
 

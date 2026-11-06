@@ -22,6 +22,10 @@ const (
 	maxCoverBytes  = 5 << 20
 )
 
+// MaxProjects caps the stored projects, so the covers take at most 1 GB of disk
+// in a public API without login (ADR-0035).
+const MaxProjects = 200
+
 // Validation error codes. They are part of the API contract.
 const (
 	CodeMinWords         = "min_words"
@@ -32,11 +36,16 @@ const (
 	CodeMaxSize          = "max_size"
 )
 
+// CodeProjectLimit tells that MaxProjects was reached. It is part of the API contract.
+const CodeProjectLimit = "project_limit"
+
 var (
 	// ErrNotFound means the requested project does not exist.
 	ErrNotFound = errors.New("project not found")
 	// ErrCoverNotFound means the requested project has no cover.
 	ErrCoverNotFound = errors.New("cover not found")
+	// ErrProjectLimit means there are already MaxProjects projects.
+	ErrProjectLimit = errors.New("project limit reached")
 )
 
 // coverContentTypes lists the accepted image formats.

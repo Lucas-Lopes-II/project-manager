@@ -8,6 +8,7 @@ export interface FieldError {
 interface Problem {
   title?: string
   detail?: string
+  code?: string
   request_id?: string
   errors?: FieldError[]
 }
@@ -17,13 +18,22 @@ export class ApiError extends Error {
   readonly status: number
   readonly fieldErrors: FieldError[]
   readonly requestId?: string
+  /** Identifies an error that is not about a single field, such as `project_limit`. */
+  readonly code?: string
 
-  constructor(status: number, message: string, fieldErrors: FieldError[] = [], requestId?: string) {
+  constructor(
+    status: number,
+    message: string,
+    fieldErrors: FieldError[] = [],
+    requestId?: string,
+    code?: string,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.fieldErrors = fieldErrors
     this.requestId = requestId
+    this.code = code
   }
 }
 
@@ -76,6 +86,7 @@ async function toApiError(response: Response): Promise<ApiError> {
     problem.detail ?? problem.title ?? response.statusText,
     problem.errors,
     problem.request_id,
+    problem.code,
   )
 }
 
