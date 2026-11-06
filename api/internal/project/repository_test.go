@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -95,6 +96,84 @@ func TestRepository_CreateAndGet(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, created) {
 		t.Errorf("Get() = %+v, want %+v", got, created)
+	}
+}
+
+// fillProjects stores count projects directly, without covers.
+func fillProjects(t *testing.T, pool *pgxpool.Pool, count int) {
+	t.Helper()
+
+	_, err := pool.Exec(t.Context(),
+		`INSERT INTO projects (name, client, start_date, end_date)
+		 SELECT 'Projeto ' || n, 'Clicksign', '2026-11-04', '2026-12-12'
+		 FROM generate_series(1, $1) AS n`, count)
+	if err != nil {
+		t.Fatalf("fill projects: %v", err)
+	}
+}
+
+func TestRepository_CreateStopsAtTheLimit(t *testing.T) {
+	pool := emptyDatabase(t)
+	repo := NewRepository(pool)
+	fillProjects(t, pool, MaxProjects-1)
+
+	last, err := repo.Create(t.Context(), newFields(t, "Projeto Duzentos"))
+	if err != nil {
+		t.Fatalf("Create() of the last project error = %v", err)
+	}
+
+	if _, err := repo.Create(t.Context(), newFields(t, "Projeto Excedente")); !errors.Is(err, ErrProjectLimit) {
+		t.Fatalf("Create() above the limit error = %v, want %v", err, ErrProjectLimit)
+	}
+
+	// The limit only applies to new projects.
+	if _, err := repo.Update(t.Context(), last.ID, newFields(t, "Projeto Editado")); err != nil {
+		t.Errorf("Update() at the limit error = %v", err)
+	}
+	if err := repo.Delete(t.Context(), last.ID); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+	if _, err := repo.Create(t.Context(), newFields(t, "Projeto Novo")); err != nil {
+		t.Errorf("Create() after a removal error = %v", err)
+	}
+}
+
+func TestRepository_ConcurrentCreationsDoNotPassTheLimit(t *testing.T) {
+	pool := emptyDatabase(t)
+	repo := NewRepository(pool)
+	fillProjects(t, pool, MaxProjects-1)
+
+	const attempts = 8
+	errs := make(chan error, attempts)
+	for i := range attempts {
+		fields := newFields(t, fmt.Sprintf("Projeto Paralelo %d", i))
+		go func() {
+			_, err := repo.Create(t.Context(), fields)
+			errs <- err
+		}()
+	}
+
+	var created, limited int
+	for range attempts {
+		switch err := <-errs; {
+		case err == nil:
+			created++
+		case errors.Is(err, ErrProjectLimit):
+			limited++
+		default:
+			t.Errorf("Create() error = %v", err)
+		}
+	}
+	if created != 1 || limited != attempts-1 {
+		t.Errorf("created = %d, limited = %d, want 1 and %d", created, limited, attempts-1)
+	}
+
+	count, err := repo.Count(t.Context())
+	if err != nil {
+		t.Fatalf("Count() error = %v", err)
+	}
+	if count != MaxProjects {
+		t.Errorf("Count() = %d, want %d", count, MaxProjects)
 	}
 }
 

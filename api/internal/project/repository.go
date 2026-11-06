@@ -30,11 +30,27 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
-// Create stores a new project and its cover in a single transaction.
+// createLock serializes the creations, so that concurrent ones cannot pass
+// MaxProjects together. The value only needs to be unique among the advisory locks.
+const createLock = 4_201_400
+
+// Create stores a new project and its cover in a single transaction, unless there
+// are already MaxProjects projects.
 func (r *Repository) Create(ctx context.Context, fields Fields) (Project, error) {
 	var project Project
 
 	err := pgx.BeginFunc(ctx, r.db, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1)`, createLock); err != nil {
+			return fmt.Errorf("lock creation: %w", err)
+		}
+		var count int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM projects`).Scan(&count); err != nil {
+			return fmt.Errorf("count projects: %w", err)
+		}
+		if count >= MaxProjects {
+			return ErrProjectLimit
+		}
+
 		var id string
 		err := tx.QueryRow(ctx,
 			`INSERT INTO projects (name, client, start_date, end_date)
