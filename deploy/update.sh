@@ -15,11 +15,11 @@ main() {
   docker image prune -f > /dev/null
 }
 
-# The Caddyfile is mounted from the repository, so Caddy only applies a change after a
+# The Caddyfile folder is mounted from the repository, so Caddy only applies a change after a
 # reload. The applied version is kept outside Git, which also covers the first run.
 reload_caddy_if_changed() {
   local applied=.caddyfile.applied current
-  current=$(sha256sum deploy/Caddyfile | cut -d' ' -f1)
+  current=$(sha256sum deploy/caddy/Caddyfile | cut -d' ' -f1)
   if [[ "$(cat "$applied" 2> /dev/null)" != "$current" ]]; then
     docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
     echo "$current" > "$applied"

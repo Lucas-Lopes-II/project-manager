@@ -21,7 +21,7 @@ Uma medição local com tráfego contínuo, recriando os dois containers como a 
 1. Os healthchecks da API e do `web` usam `start_period` com `start_interval: 1s`, então um container novo é considerado saudável cerca de 1 segundo depois de subir. Depois disso, a verificação volta a ser a cada 5 segundos.
 2. O nginx desiste de conectar na API depois de 2 segundos (`proxy_connect_timeout`). Como os dois estão na mesma rede, uma conexão demorada significa que a API está sendo trocada, e falhar rápido deixa o container antigo parar logo.
 3. O Caddy tenta o `web` de novo por até 10 segundos, a cada 250 ms, quando a conexão falha. Durante a troca do `web`, a página demora um pouco mais em vez de responder 502.
-4. O script de atualização da VM recarrega o Caddy quando o Caddyfile muda, porque o arquivo é montado do repositório e o Caddy só o lê de novo em um `reload`.
+4. O Caddyfile fica em `deploy/caddy/`, e essa pasta é montada no container. O script de atualização da VM recarrega o Caddy quando o arquivo muda, porque o Caddy só o lê de novo em um `reload`. A pasta é montada, e não o arquivo, porque o `git pull` troca um arquivo alterado por um novo, e um container que monta só o arquivo continua lendo o antigo.
 
 ## Alternativas consideradas
 
@@ -35,3 +35,4 @@ Uma medição local com tráfego contínuo, recriando os dois containers como a 
 - As chamadas à API ainda falham por cerca de 2 segundos, enquanto ela reinicia, porque o nginx não tem outra instância para tentar.
 - Uma chamada à API que leve mais de 2 segundos só para conectar passa a responder 504, o que não deve acontecer na mesma rede fora de uma troca.
 - `start_interval` exige o Docker Engine 25 ou mais recente na VM.
+- Até a F12, o Caddyfile era montado sozinho, e o Caddy da VM continuou com a versão anterior a esta decisão. Na publicação da F12, a página respondeu 502 por cerca de 3 segundos. A montagem da pasta, na F13, corrigiu isso.
