@@ -70,4 +70,34 @@ describe('project list', () => {
     cy.contains('h1', 'Projetos (1)').should('be.visible')
     cy.get('[role="alert"]').should('not.exist')
   })
+
+  it('adapts the margins and the grid to phones and tablets (ADR-0036)', () => {
+    for (const name of ['Projeto Alfa', 'Projeto Beta', 'Projeto Gama']) {
+      createProject(name)
+    }
+    const layouts = [
+      { width: 375, columns: 1, margin: 16 },
+      { width: 768, columns: 2, margin: 40 },
+      { width: 1024, columns: 2, margin: 40 },
+      { width: 1366, columns: 3, margin: 40 },
+    ]
+
+    for (const { width, columns, margin } of layouts) {
+      cy.viewport(width, 900)
+      cy.visit('/')
+      cy.get('article').should('have.length', 3)
+      cy.get('article').then(($cards) => {
+        const first = $cards[0]!.getBoundingClientRect()
+        const firstRow = [...$cards].filter(
+          (card) => card.getBoundingClientRect().top === first.top,
+        )
+        expect(firstRow, `columns at ${width}`).to.have.length(columns)
+        expect(first.left, `margin at ${width}`).to.eq(margin)
+      })
+      cy.document().then((document) => {
+        const { scrollWidth, clientWidth } = document.documentElement
+        expect(scrollWidth, `at ${width}`).to.be.at.most(clientWidth)
+      })
+    }
+  })
 })

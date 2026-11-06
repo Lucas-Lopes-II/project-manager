@@ -208,6 +208,9 @@ function removeTerm(term: string, index: number): void {
 
 <style scoped>
 .header {
+  /* Where the magnifier of the bar starts, and the icons of the history below it. */
+  --search-inset: 31px;
+
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -236,6 +239,17 @@ function removeTerm(term: string, index: number): void {
   background: none;
 }
 
+/* On phones, the icons follow the 16 px margins of the page (ADR-0036). */
+@media (width < 600px) {
+  .header {
+    --search-inset: 15px;
+  }
+
+  .search {
+    margin-right: 6px;
+  }
+}
+
 /* The bar takes the whole header, as in the design. */
 .searching {
   display: flex;
@@ -249,7 +263,7 @@ function removeTerm(term: string, index: number): void {
   align-items: center;
   gap: 23px;
   height: 100%;
-  padding: 0 32px 0 31px;
+  padding: 0 calc(var(--search-inset) + 1px) 0 var(--search-inset);
   border-bottom: 2px solid transparent;
 
   /* The field takes the whole bar, so its focus is shown on the bar itself. */
@@ -328,7 +342,7 @@ function removeTerm(term: string, index: number): void {
   gap: 25px;
   min-width: 0;
   height: 100%;
-  padding: 0 0 0 31px;
+  padding: 0 0 0 var(--search-inset);
   border: 0;
   background: none;
   color: var(--color-text-muted);

@@ -41,6 +41,8 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0033](0033-historico-de-busca-no-navegador.md) | Histórico de busca no navegador | Accepted | F12 |
 | [0034](0034-destaque-do-termo-no-navegador.md) | Destaque do termo calculado no navegador | Accepted | F13 |
 | [0035](0035-protecao-contra-abuso.md) | Proteção contra abuso | Accepted | F14 |
+| [0036](0036-telas-menores-que-o-design.md) | Telas menores que o design | Accepted | F15 |
+| [0037](0037-acessibilidade-verificada-e-anuncio-de-tela.md) | Acessibilidade verificada nos testes e anúncio de cada tela | Accepted | F15 |
 
 ## Modelo
 
