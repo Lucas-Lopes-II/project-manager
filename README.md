@@ -4,7 +4,7 @@ Aplicação para visualizar, adicionar, editar, remover e favoritar projetos.
 
 **Acesse:** https://gerenciador-projetos-lucas.duckdns.org
 
-> Em desenvolvimento. Por enquanto, o repositório contém a API de projetos, a listagem com o filtro de favoritos, a ordenação, a busca por nome com o histórico das últimas buscas e o destaque do termo, e a criação, a edição e a remoção de projetos com capa.
+> Em desenvolvimento. Por enquanto, o repositório contém a API de projetos, a listagem com o filtro de favoritos, a ordenação, a busca por nome com o histórico das últimas buscas e o destaque do termo, a criação, a edição e a remoção de projetos com capa, e a proteção contra abuso.
 
 ## Stack
 
@@ -66,6 +66,8 @@ Se a API estiver em outra porta, defina `API_PROXY_TARGET`.
 ## Produção
 
 A aplicação roda em uma única VM com Docker Compose, e cada merge na `main` é publicado automaticamente. Os detalhes estão em [docs/deploy.md](docs/deploy.md).
+
+Como ela é pública e sem login, o nginx limita as requisições por IP, a API aceita até 200 projetos e as respostas trazem os headers de segurança do navegador ([ADR-0035](docs/adrs/0035-protecao-contra-abuso.md)).
 
 ## Testes
 
