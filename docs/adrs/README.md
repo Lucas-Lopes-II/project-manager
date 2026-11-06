@@ -39,6 +39,7 @@ Registro das decisões técnicas do projeto, com o contexto e as alternativas av
 | [0031](0031-publicacao-com-espera-no-lugar-do-erro.md) | Publicação com espera no lugar do erro | Accepted | F10 |
 | [0032](0032-busca-por-nome.md) | Busca por nome no banco, enquanto a pessoa digita | Accepted | F11 |
 | [0033](0033-historico-de-busca-no-navegador.md) | Histórico de busca no navegador | Accepted | F12 |
+| [0034](0034-destaque-do-termo-no-navegador.md) | Destaque do termo calculado no navegador | Accepted | F13 |
 
 ## Modelo
 
