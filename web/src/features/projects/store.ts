@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LocationQuery } from 'vue-router'
+import type { LocationQuery, RouteLocationRaw } from 'vue-router'
 
 import { ApiError } from '@/shared/api/client'
 
@@ -11,6 +11,7 @@ export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 export interface LoadOptions {
   favoritesOnly?: boolean
   sort?: ProjectSort
+  query?: string
   /** Keeps the current list on screen until the answer arrives, so it does not flicker. */
   keepItems?: boolean
 }
@@ -22,8 +23,13 @@ export const useProjectsStore = defineStore('projects', () => {
   const favoritesOnly = ref(false)
   const sort = ref<ProjectSort>('name')
 
-  /** The query of the list, so that the forms return to the same filters. */
+  const query = ref('')
+
+  /** The query of the list, so that going back to it keeps the same filters. */
   const listQuery = ref<LocationQuery>({})
+
+  /** The page that opened a form, the list or the search result, where the form returns to. */
+  const returnTo = ref<RouteLocationRaw>({ name: 'projects' })
 
   let controller: AbortController | undefined
   const pendingFavorites = new Set<string>()
@@ -34,6 +40,7 @@ export const useProjectsStore = defineStore('projects', () => {
     controller = current
     favoritesOnly.value = options.favoritesOnly ?? false
     sort.value = options.sort ?? 'name'
+    query.value = options.query ?? ''
     if (!(options.keepItems && status.value === 'ready')) {
       status.value = 'loading'
     }
@@ -42,6 +49,7 @@ export const useProjectsStore = defineStore('projects', () => {
       const list = await listProjects(current.signal, {
         favoritesOnly: favoritesOnly.value,
         sort: sort.value,
+        query: query.value,
       })
       if (current !== controller) return
 
@@ -135,7 +143,9 @@ export const useProjectsStore = defineStore('projects', () => {
     status,
     favoritesOnly,
     sort,
+    query,
     listQuery,
+    returnTo,
     load,
     cancel,
     remove,

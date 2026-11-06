@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -83,9 +84,10 @@ func (r *Repository) List(ctx context.Context, filter ListFilter) ([]Project, er
 		`SELECT `+columns+`
 		 FROM projects p `+joinCovers+`,
 		      LATERAL (SELECT (now() AT TIME ZONE 'America/Sao_Paulo')::date AS today) t
-		 WHERE NOT $1 OR p.favorite
+		 WHERE (NOT $1 OR p.favorite)
+		   AND ($2 = '' OR unaccent(p.name) ILIKE '%' || unaccent($2) || '%')
 		 ORDER BY `+order,
-		filter.FavoritesOnly,
+		filter.FavoritesOnly, escapeLike(filter.Query),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
@@ -98,6 +100,14 @@ func (r *Repository) List(ctx context.Context, filter ListFilter) ([]Project, er
 		return nil, fmt.Errorf("list projects: %w", err)
 	}
 	return projects, nil
+}
+
+// likeEscaper makes the characters of a LIKE pattern match themselves. Backslash is
+// the default escape character of PostgreSQL.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+func escapeLike(text string) string {
+	return likeEscaper.Replace(text)
 }
 
 // Count returns the number of registered projects.

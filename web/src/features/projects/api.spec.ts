@@ -127,6 +127,16 @@ describe('listProjects', () => {
     expect(requestMock).toHaveBeenCalledWith('/projects?favorite=true', { signal: undefined })
   })
 
+  it('asks for the projects whose name contains a term', async () => {
+    await listProjects(undefined, { query: 'área 51' })
+    await listProjects(undefined, { query: '' })
+
+    expect(requestMock.mock.calls.map(([path]) => path)).toEqual([
+      '/projects?q=%C3%A1rea+51',
+      '/projects',
+    ])
+  })
+
   it('asks for an order, leaving the default one out', async () => {
     await listProjects(undefined, { sort: 'name' })
     await listProjects(undefined, { sort: 'deadline' })

@@ -226,7 +226,11 @@ describe('ProjectListPage', () => {
       const wrapper = mountPage()
       await flushPromises()
 
-      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true, sort: 'name' })
+      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({
+        favoritesOnly: true,
+        sort: 'name',
+        query: '',
+      })
       expect((toggle(wrapper).element as HTMLInputElement).checked).toBe(true)
       expect(wrapper.get('h1').text()).toBe('Projetos (2)')
       expect(useProjectsStore().listQuery).toEqual({ favoritos: 'true' })
@@ -242,7 +246,11 @@ describe('ProjectListPage', () => {
       await flushPromises()
 
       expect(router.currentRoute.value.query).toEqual({ favoritos: 'true' })
-      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({ favoritesOnly: true, sort: 'name' })
+      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({
+        favoritesOnly: true,
+        sort: 'name',
+        query: '',
+      })
       expect(wrapper.findAll('article')).toHaveLength(2)
       expect(wrapper.get('[role="status"]').text()).toBe('')
     })
@@ -301,7 +309,11 @@ describe('ProjectListPage', () => {
       const wrapper = mountPage()
       await flushPromises()
 
-      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: true, sort: 'deadline' })
+      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({
+        favoritesOnly: true,
+        sort: 'deadline',
+        query: '',
+      })
       expect(wrapper.get('[role="combobox"]').text()).toBe('Prazo mais próximo')
     })
 
@@ -316,7 +328,11 @@ describe('ProjectListPage', () => {
       await flushPromises()
 
       expect(router.currentRoute.value.query).toEqual({ ordem: 'recentes' })
-      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({ favoritesOnly: false, sort: 'recent' })
+      expect(listProjectsMock.mock.calls[1]?.[1]).toEqual({
+        favoritesOnly: false,
+        sort: 'recent',
+        query: '',
+      })
 
       await combobox.trigger('click')
       await wrapper.findAll('[role="option"]')[0]!.trigger('click')
@@ -332,7 +348,11 @@ describe('ProjectListPage', () => {
       const wrapper = mountPage()
       await flushPromises()
 
-      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({ favoritesOnly: false, sort: 'name' })
+      expect(listProjectsMock.mock.calls[0]?.[1]).toEqual({
+        favoritesOnly: false,
+        sort: 'name',
+        query: '',
+      })
       expect(wrapper.get('[role="combobox"]').text()).toBe('Ordem alfabética')
     })
   })

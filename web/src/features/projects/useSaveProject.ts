@@ -36,7 +36,7 @@ export function useSaveProject(save: (values: ProjectInput) => Promise<unknown>)
     }
 
     // Outside the try and still saving: the project was saved, so nothing here can offer another attempt.
-    await router.push({ name: 'projects', query: projects.listQuery })
+    await router.push(projects.returnTo)
   }
 
   function clearErrors(): void {
