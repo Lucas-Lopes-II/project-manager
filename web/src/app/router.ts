@@ -17,6 +17,11 @@ const router = createRouter({
       component: () => import('@/features/projects/pages/ProjectListPage.vue'),
     },
     {
+      path: '/busca',
+      name: 'project-search',
+      component: () => import('@/features/projects/pages/ProjectSearchPage.vue'),
+    },
+    {
       path: '/projetos/novo',
       name: 'project-new',
       meta: { hideSearch: true },
