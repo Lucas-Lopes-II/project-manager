@@ -75,6 +75,8 @@ const (
 type ListFilter struct {
 	FavoritesOnly bool
 	Sort          Sort
+	// Query keeps the projects whose name contains it, ignoring case and accents.
+	Query string
 }
 
 // Input holds the values sent by a client. The dates stay as text until

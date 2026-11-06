@@ -51,6 +51,8 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filter.Query = normalizeText(query.Get("q"))
+
 	switch sort := Sort(query.Get("sort")); sort {
 	case "":
 	case SortName, SortRecent, SortDeadline:

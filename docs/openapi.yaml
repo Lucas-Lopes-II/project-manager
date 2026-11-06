@@ -31,6 +31,12 @@ paths:
           schema:
             type: string
             enum: ["true"]
+        - name: q
+          in: query
+          description: Retorna os projetos cujo nome contém o termo, sem diferenciar maiúsculas e acentos. Espaços repetidos viram um só, e `%` e `_` são tratados como texto.
+          schema:
+            type: string
+            example: projeto
         - name: sort
           in: query
           description: |
