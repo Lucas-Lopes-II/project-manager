@@ -73,8 +73,10 @@ function onRemoved(): Promise<void> {
 
     <ul v-else class="grid">
       <li v-for="project in projects.items" :key="project.id" class="item">
+        <!-- The list loads without a term, so only the search result marks the names. -->
         <ProjectCard
           :project="project"
+          :highlight="projects.query"
           @remove="toRemove = $event"
           @toggle-favorite="onToggleFavorite"
         />

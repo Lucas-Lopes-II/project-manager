@@ -51,6 +51,27 @@ describe('project search', () => {
     searchInput().should('have.value', 'AREA')
   })
 
+  it('marks the term in the names of the result only', () => {
+    createProject('Projeto de projetos')
+    cy.visit('/busca?q=projeto')
+
+    cy.contains('article', 'Projeto de projetos')
+      .find('h2 mark')
+      .then(($marks) => [...$marks].map((mark) => mark.textContent))
+      .should('deep.equal', ['Projeto', 'projeto'])
+    cy.contains('article', 'Projeto Alfa')
+      .find('h2 mark')
+      .should('have.text', 'Projeto')
+      .and('have.css', 'background-color', 'rgb(255, 178, 61)')
+
+    searchInput().clear().type('área')
+    cy.contains('article h2', 'Área Norte').find('mark').should('have.text', 'Área')
+
+    cy.contains('a', 'Voltar').click()
+    cy.get('article').should('have.length', 5)
+    cy.get('mark').should('not.exist')
+  })
+
   it('updates the result while typing and goes back to the list in one step', () => {
     cy.visit('/?favoritos=true')
     cy.visit('/')

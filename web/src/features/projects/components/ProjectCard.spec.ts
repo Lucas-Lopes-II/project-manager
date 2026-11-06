@@ -47,6 +47,23 @@ describe('ProjectCard', () => {
     expect(wrapper.get('.client').attributes('title')).toBe('Clicksign')
   })
 
+  it('marks the searched term in the name only, keeping the full name', () => {
+    const wrapper = mount(ProjectCard, {
+      props: { project: { ...project, client: 'Projetos SA' }, highlight: 'projeto' },
+      global: { plugins: [router] },
+    })
+
+    const name = wrapper.get('h2')
+    expect(name.findAll('mark').map((mark) => mark.text())).toEqual(['Projeto'])
+    expect(name.text()).toBe('Projeto Iridium')
+    expect(name.attributes('title')).toBe('Projeto Iridium')
+    expect(wrapper.get('.client').find('mark').exists()).toBe(false)
+  })
+
+  it('marks nothing without a term', () => {
+    expect(mountCard().find('mark').exists()).toBe(false)
+  })
+
   it('shows the cover and leaves its loading for when it gets close to the screen', () => {
     const wrapper = mountCard({ ...project, cover_url: '/api/v1/projects/1/cover?v=1' })
     const cover = wrapper.get('.cover')

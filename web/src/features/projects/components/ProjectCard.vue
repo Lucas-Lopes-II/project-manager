@@ -13,13 +13,20 @@ import ActionMenuItem from '@/shared/ui/ActionMenuItem.vue'
 
 import type { Project } from '../api'
 import { formatDate } from '../formatDate'
+import { highlightParts } from '../search'
 
-const props = defineProps<{ project: Project }>()
+const props = defineProps<{
+  project: Project
+  /** The searched term, marked in the name (ADR-0034). */
+  highlight?: string
+}>()
 
 defineEmits<{
   remove: [project: Project]
   toggleFavorite: [project: Project]
 }>()
+
+const nameParts = computed(() => highlightParts(props.project.name, props.highlight ?? ''))
 
 const dates = computed(() => [
   { label: 'Início', value: props.project.start_date, icon: calendarDayIcon },
@@ -61,7 +68,12 @@ const dates = computed(() => [
     </div>
 
     <div class="body">
-      <h2 class="name" :title="project.name">{{ project.name }}</h2>
+      <h2 class="name" :title="project.name">
+        <template v-for="(part, index) in nameParts" :key="index">
+          <mark v-if="part.match" class="match">{{ part.text }}</mark>
+          <template v-else>{{ part.text }}</template>
+        </template>
+      </h2>
       <p class="client" :title="project.client">
         <strong class="client-label">Cliente:</strong> {{ project.client }}
       </p>
@@ -144,6 +156,13 @@ const dates = computed(() => [
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   line-height: 30px;
+}
+
+/* The extra pixel on top gives the 26 px of the design. */
+.match {
+  padding-top: 1px;
+  background: var(--color-accent);
+  color: inherit;
 }
 
 .client {
