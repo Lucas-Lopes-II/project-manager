@@ -1,17 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import { MIN_SEARCH_LENGTH, searchTerm } from './search'
+import { foldText, MIN_SEARCH_LENGTH, searchTerm } from './search'
 
 /** The history keeps this many terms, the newest first (ADR-0033). */
 export const MAX_SEARCH_HISTORY = 5
 
 export const SEARCH_HISTORY_KEY = 'project-manager:search-history'
-
-/** Compares terms as the search does, without case and accents. */
-function fold(term: string): string {
-  return term.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('pt-BR')
-}
 
 function isTerm(value: unknown): value is string {
   return typeof value === 'string' && searchTerm(value).length >= MIN_SEARCH_LENGTH
@@ -55,14 +50,17 @@ export const useSearchHistoryStore = defineStore('searchHistory', () => {
     const term = searchTerm(value)
     if (term.length < MIN_SEARCH_LENGTH) return
 
-    const key = fold(term)
+    const key = foldText(term)
     const [newest, ...rest] = terms.value
     const older =
-      newest !== undefined && (key.startsWith(fold(newest)) || fold(newest).startsWith(key))
+      newest !== undefined && (key.startsWith(foldText(newest)) || foldText(newest).startsWith(key))
         ? rest
         : terms.value
 
-    terms.value = [term, ...older.filter((item) => fold(item) !== key)].slice(0, MAX_SEARCH_HISTORY)
+    terms.value = [term, ...older.filter((item) => foldText(item) !== key)].slice(
+      0,
+      MAX_SEARCH_HISTORY,
+    )
     writeStorage(terms.value)
   }
 
