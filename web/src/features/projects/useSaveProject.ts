@@ -8,6 +8,7 @@ import { useProjectsStore } from './store'
 import { errorsFromApi, hasErrors, type ProjectErrors } from './validation'
 
 const SAVE_FAILURE = 'Não foi possível salvar o projeto. Tente novamente.'
+const PROJECT_LIMIT = 'Limite de 200 projetos atingido. Remova um projeto para criar outro.'
 
 /** Saves the form and returns to the list, or keeps the form open with what went wrong. */
 export function useSaveProject(save: (values: ProjectInput) => Promise<unknown>) {
@@ -30,7 +31,8 @@ export function useSaveProject(save: (values: ProjectInput) => Promise<unknown>)
       serverErrors.value = error instanceof ApiError ? errorsFromApi(error) : {}
       notFound.value = error instanceof ApiError && error.status === 404
       if (!hasErrors(serverErrors.value)) {
-        failure.value = SAVE_FAILURE
+        failure.value =
+          error instanceof ApiError && error.code === 'project_limit' ? PROJECT_LIMIT : SAVE_FAILURE
       }
       return
     }

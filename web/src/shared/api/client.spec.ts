@@ -89,6 +89,22 @@ describe('request', () => {
     expect(error.fieldErrors).toEqual([{ field: 'name', code: 'min_words' }])
   })
 
+  it('keeps the code of an error that is not about a field', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(409, {
+        title: 'Conflict',
+        detail: 'O limite de 200 projetos foi atingido.',
+        code: 'project_limit',
+      }),
+    )
+
+    const error = await rejection(request('/projects', { method: 'POST', body: {} }))
+
+    expect(error.status).toBe(409)
+    expect(error.code).toBe('project_limit')
+    expect(error.fieldErrors).toEqual([])
+  })
+
   it('handles an error response without a JSON body', async () => {
     fetchMock.mockResolvedValue(
       new Response('<html>Bad Gateway</html>', { status: 502, statusText: 'Bad Gateway' }),
