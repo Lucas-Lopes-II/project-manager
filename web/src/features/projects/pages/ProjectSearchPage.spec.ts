@@ -58,6 +58,7 @@ describe('ProjectSearchPage', () => {
     })
     expect(wrapper.get('h1').text()).toBe('Resultado da busca')
     expect(wrapper.findAll('article')).toHaveLength(1)
+    expect(wrapper.get('article h2 mark').text()).toBe('Proj')
     expect(wrapper.text()).not.toContain('(3)')
   })
 
