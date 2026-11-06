@@ -3,12 +3,14 @@ import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 
 import { useRoute, useRouter } from 'vue-router'
 
 import { MIN_SEARCH_LENGTH, searchTerm } from '@/features/projects/search'
+import { useSearchHistoryStore } from '@/features/projects/searchHistory'
 
 /** The search waits this long after the last key (ADR-0032). */
 const SEARCH_DELAY_MS = 300
 
 const route = useRoute()
 const router = useRouter()
+const searchHistory = useSearchHistoryStore()
 
 const form = useTemplateRef('form')
 const input = useTemplateRef('input')
@@ -16,9 +18,15 @@ const searchButton = useTemplateRef('searchButton')
 
 const isOpen = ref(false)
 const text = ref('')
+const hasFocus = ref(false)
 
 const onSearchPage = computed(() => route.name === 'project-search')
 const showsBar = computed(() => isOpen.value && !route.meta.hideSearch)
+
+/** The last searches appear under the focused bar while the field is empty (ADR-0033). */
+const showsHistory = computed(
+  () => showsBar.value && hasFocus.value && text.value === '' && searchHistory.terms.length > 0,
+)
 
 let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -61,6 +69,7 @@ async function open(): Promise<void> {
 async function close({ restoreFocus = false } = {}): Promise<void> {
   clearTimer()
   isOpen.value = false
+  hasFocus.value = false
   text.value = ''
   if (restoreFocus) {
     await nextTick()
@@ -69,8 +78,8 @@ async function close({ restoreFocus = false } = {}): Promise<void> {
 }
 
 /**
- * The first search opens the result page with a new entry in the history, and the next terms
- * replace it, so the back button returns to the list in one step.
+ * The first search opens the result page with a new entry in the browser history, and the next
+ * terms replace it, so the back button returns to the list in one step.
  */
 function search({ force = false } = {}): void {
   clearTimer()
@@ -104,10 +113,33 @@ function onKeydown(event: KeyboardEvent): void {
 
 /** On the list, an empty bar closes when the focus goes elsewhere, such as a click outside. */
 function onFocusout(event: FocusEvent): void {
-  if (onSearchPage.value || text.value) return
-  if (!form.value?.contains(event.relatedTarget as Node | null)) {
+  if (form.value?.contains(event.relatedTarget as Node | null)) return
+  hasFocus.value = false
+  if (!onSearchPage.value && !text.value) {
     void close()
   }
+}
+
+/** The focus moves to the field before the list closes, so it is not lost with the button. */
+function choose(term: string): void {
+  input.value?.focus()
+  text.value = term
+  search({ force: true })
+}
+
+/**
+ * When the focus is in the removed item, as after the keyboard, it moves to the next term, or to
+ * the previous one at the end of the list, before the item leaves the page. A click keeps it where
+ * it was.
+ */
+function removeTerm(term: string, index: number): void {
+  const items = form.value?.querySelectorAll('.history-item') ?? []
+  if (items[index]?.contains(document.activeElement)) {
+    const next = items[index + 1] ?? items[index - 1]
+    const target = next?.querySelector<HTMLButtonElement>('.history-term') ?? input.value
+    target?.focus()
+  }
+  searchHistory.remove(term)
 }
 </script>
 
@@ -117,8 +149,11 @@ function onFocusout(event: FocusEvent): void {
       v-if="showsBar"
       ref="form"
       class="search-bar"
+      :class="{ 'with-history': showsHistory }"
       role="search"
       @submit.prevent="search({ force: true })"
+      @keydown="onKeydown"
+      @focusin="hasFocus = true"
       @focusout="onFocusout"
     >
       <img src="@/shared/assets/icons/search-primary.svg" alt="" width="20" height="20" />
@@ -132,8 +167,25 @@ function onFocusout(event: FocusEvent): void {
         autocomplete="off"
         enterkeyhint="search"
         @input="onInput"
-        @keydown="onKeydown"
       />
+
+      <!-- A click keeps the focus in the field, so the bar does not close before the choice. -->
+      <ul v-if="showsHistory" class="history" aria-label="Buscas recentes" @mousedown.prevent>
+        <li v-for="(term, index) in searchHistory.terms" :key="term" class="history-item">
+          <button class="history-term" type="button" @click="choose(term)">
+            <img src="@/shared/assets/icons/history.svg" alt="" width="16" height="16" />
+            <span class="history-text">{{ term }}</span>
+          </button>
+          <button
+            class="history-remove"
+            type="button"
+            :aria-label="`Remover ${term} do histórico`"
+            @click="removeTerm(term, index)"
+          >
+            <img src="@/shared/assets/icons/close.svg" alt="" width="16" height="16" />
+          </button>
+        </li>
+      </ul>
     </form>
 
     <template v-else>
@@ -191,6 +243,7 @@ function onFocusout(event: FocusEvent): void {
 }
 
 .search-bar {
+  position: relative;
   display: flex;
   flex: 1;
   align-items: center;
@@ -202,6 +255,15 @@ function onFocusout(event: FocusEvent): void {
   /* The field takes the whole bar, so its focus is shown on the bar itself. */
   &:focus-within {
     border-bottom-color: var(--color-primary);
+  }
+
+  /* With the history, the bar and the list form a single outlined box, as in the design. */
+  &.with-history {
+    border-bottom-color: transparent;
+    box-shadow:
+      inset 0 2px var(--color-primary),
+      inset 2px 0 var(--color-primary),
+      inset -2px 0 var(--color-primary);
   }
 }
 
@@ -224,5 +286,72 @@ function onFocusout(event: FocusEvent): void {
   &::-webkit-search-cancel-button {
     appearance: none;
   }
+}
+.history {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--color-primary);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  list-style: none;
+
+  :focus-visible {
+    outline-color: var(--color-primary);
+    outline-offset: -2px;
+  }
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border-top: 1px solid var(--color-page);
+
+  &:hover {
+    background: var(--color-page);
+  }
+}
+
+/* The icon sits under the magnifier and the term starts where the typed text does. */
+.history-term {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 25px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 31px;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  line-height: 16px;
+  text-align: left;
+}
+
+.history-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The icon ends 24 px before the edge, as in the design. */
+.history-remove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
 }
 </style>
