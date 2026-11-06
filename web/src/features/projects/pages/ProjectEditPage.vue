@@ -67,9 +67,7 @@ onBeforeUnmount(() => {
     title="Projeto não encontrado"
     text="Ele pode ter sido removido. Volte para a lista para ver os projetos cadastrados."
   >
-    <BaseButton :to="{ name: 'projects', query: projects.listQuery }">
-      Voltar para a lista
-    </BaseButton>
+    <BaseButton :to="projects.returnTo"> Voltar para a lista </BaseButton>
   </MessageCard>
 
   <MessageCard

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useProjectsStore } from '../store'
+import BackHeading from './BackHeading.vue'
 
 defineProps<{ title: string }>()
 
@@ -7,11 +8,7 @@ const projects = useProjectsStore()
 </script>
 
 <template>
-  <RouterLink class="back" :to="{ name: 'projects', query: projects.listQuery }">
-    <img src="@/shared/assets/icons/arrow-left.svg" alt="" width="16" height="16" />
-    Voltar
-  </RouterLink>
-  <h1 class="title">{{ title }}</h1>
+  <BackHeading :title="title" :back="projects.returnTo" />
 
   <section class="card">
     <slot />
@@ -19,25 +16,8 @@ const projects = useProjectsStore()
 </template>
 
 <style scoped>
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 27px;
-  margin: 7px 0 0 5px;
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.title {
-  margin: 8px 0 33px 5px;
-  color: var(--color-heading);
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-semibold);
-  line-height: 32px;
-}
-
 .card {
+  margin-top: 33px;
   padding: 51px 24px;
   border: 1px solid var(--color-border-card);
   border-radius: var(--radius-control);
