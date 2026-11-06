@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// shutdownTimeout stays below the 10 seconds Cloud Run waits after SIGTERM.
+// shutdownTimeout stays below the 10 seconds Docker waits after SIGTERM.
 const shutdownTimeout = 8 * time.Second
 
 // Serve runs srv on listener until ctx is canceled, then lets the requests in
