@@ -4,7 +4,7 @@ Aplicação para visualizar, adicionar, editar, remover e favoritar projetos.
 
 **Acesse:** https://gerenciador-projetos-lucas.duckdns.org
 
-> Em desenvolvimento. Por enquanto, o repositório contém a API de projetos, a listagem com o filtro de favoritos, a ordenação, a busca por nome com o histórico das últimas buscas e o destaque do termo, a criação, a edição e a remoção de projetos com capa, e a proteção contra abuso.
+> Em desenvolvimento. Por enquanto, o repositório contém a API de projetos, a listagem com o filtro de favoritos, a ordenação, a busca por nome com o histórico das últimas buscas e o destaque do termo, a criação, a edição e a remoção de projetos com capa, e a proteção contra abuso. As telas funcionam também em celulares e tablets, e a acessibilidade é verificada nos testes E2E.
 
 ## Stack
 
