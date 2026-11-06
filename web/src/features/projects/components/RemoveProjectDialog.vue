@@ -119,10 +119,12 @@ function onClick(event: MouseEvent): void {
 
 <style scoped>
 .dialog {
+  /* The same proportion of the screen as in the design, which starts at 292 px of 1080 px. */
+  --dialog-top: max(27dvh, 48px);
+
   width: min(582px, 100% - 32px);
   max-width: none;
-  /* The same proportion of the screen as in the design, which starts at 292 px of 1080 px. */
-  margin: max(27dvh, 48px) auto auto;
+  margin: var(--dialog-top) auto auto;
   padding: 0;
   overflow: visible;
   border: 0;
@@ -141,8 +143,17 @@ function onClick(event: MouseEvent): void {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* On short screens or with zoom, the content scrolls instead of leaving the buttons out. */
+  max-height: calc(100dvh - var(--dialog-top) - 16px);
   padding: 48px 32px 32px;
+  overflow-y: auto;
   text-align: center;
+}
+
+@media (height < 600px) {
+  .dialog {
+    --dialog-top: 48px;
+  }
 }
 
 .icon {

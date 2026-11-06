@@ -103,6 +103,13 @@ function onRemoved(): Promise<void> {
   list-style: none;
 }
 
+/* Two columns on tablets, instead of a single card as wide as the screen (ADR-0036). */
+@media (width < 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  }
+}
+
 .item {
   display: grid;
 }

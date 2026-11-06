@@ -10,7 +10,7 @@
   --color-heading: #1f1283;
   --color-text: #1c1930;
   --color-text-strong: #1e1e1e;
-  --color-text-muted: #717171;
+  --color-text-muted: #6e6e6e; /* #717171 no Figma, escurecido para o contraste de 4,5:1 sobre --color-page (F15) */
   --color-border: #717171;
   --color-border-card: #dcdcdc;
   --color-divider: #ececec;
@@ -51,4 +51,12 @@
 
   /* Medidas */
   --topbar-height: 80px;
+}
+
+/* Celulares: o design só tem telas de 1940 px (ADR-0036). */
+@media (width < 600px) {
+  :root {
+    --space-page-inline: 16px;
+    --space-page-top: 24px;
+  }
 }
